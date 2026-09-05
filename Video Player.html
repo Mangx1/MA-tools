@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>UltraPower Multi-Engine Video Player</title>
   
   <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
@@ -19,7 +19,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
+      min-height: 100dvh;
       padding: 15px;
     }
     .container {
@@ -35,6 +35,21 @@
       aspect-ratio: 16 / 9;
       background: #000;
     }
+
+    /* Fix Fullscreen di Android / WebView */
+    .artplayer-app.art-fullscreen-web,
+    .artplayer-app.art-fullscreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100dvh !important;
+      max-width: none !important;
+      max-height: none !important;
+      z-index: 999999 !important;
+      border-radius: 0 !important;
+    }
+
     .panel {
       padding: 20px;
       display: flex;
@@ -126,6 +141,11 @@
     subtitleOffset: true,
     miniProgressBar: true,
     autoPlayback: true,
+    moreVideoAttr: {
+      'playsinline': true,
+      'webkit-playsinline': true,
+      'x5-playsinline': true
+    },
     customType: {
       m3u8: function (video, url, art) {
         if (Hls.isSupported()) {
@@ -142,7 +162,7 @@
         }
       },
       mpd: function (video, url, art) {
-        if (dashjs.MediaPlayer) {
+        if (window.dashjs && dashjs.MediaPlayer) {
           if (art.dash) art.dash.reset();
           const player = dashjs.MediaPlayer().create();
           player.initialize(video, url, true);
@@ -151,7 +171,7 @@
         }
       },
       flv: function (video, url, art) {
-        if (flvjs.isSupported()) {
+        if (window.flvjs && flvjs.isSupported()) {
           if (art.flv) art.flv.destroy();
           const flvPlayer = flvjs.createPlayer({ type: 'flv', url: url });
           flvPlayer.attachMediaElement(video);
@@ -163,10 +183,17 @@
     }
   });
 
+  // Otomatis pindah ke Web Fullscreen jika Native Fullscreen diblokir WebView/Android
+  art.on('fullscreen', (state) => {
+    if (state && !document.fullscreenElement && !document.webkitFullscreenElement) {
+      art.fullscreen = false;
+      art.fullscreenWeb = true;
+    }
+  });
+
   function processUrl(rawUrl) {
     const useProxy = document.getElementById('corsBypass').checked;
     if (useProxy && rawUrl.startsWith('http')) {
-      // Menggunakan CORS Proxy untuk memotong blokir domain dari CDN luar
       return 'https://corsproxy.io/?' + encodeURIComponent(rawUrl);
     }
     return rawUrl;
