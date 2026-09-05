@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kompresor Gambar Sederhana</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #444;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="file"], input[type="range"] {
+            width: 100%;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            width: 100%;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+        }
+        .result img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin-top: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .download-btn {
+            background-color: #28a745;
+            margin-top: 10px;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .download-btn:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Kompres Gambar Otomatis</h2>
+    
+    <div class="form-group">
+        <label for="uploadImage">Pilih Gambar:</label>
+        <input type="file" id="uploadImage" accept="image/*">
+    </div>
+
+    <div class="form-group">
+        <label for="qualityRange">Kualitas Kompresi (<span id="qualityVal">0.7</span>):</label>
+        <input type="range" id="qualityRange" min="0.1" max="1.0" step="0.1" value="0.7">
+    </div>
+
+    <button id="compressBtn">Kompres Sekarang</button>
+
+    <div class="result" id="resultContainer" style="display: none;">
+        <h3>Hasil Kompresi</h3>
+        <p><strong>Ukuran Asli:</strong> <span id="originalSize">-</span></p>
+        <p><strong>Ukuran Baru:</strong> <span id="compressedSize">-</span></p>
+        <img id="outputPreview" src="" alt="Preview">
+        <a id="downloadLink" class="download-btn" download="compressed.jpg">Unduh Gambar</a>
+    </div>
+</div>
+
+<script>
+    const uploadImage = document.getElementById('uploadImage');
+    const qualityRange = document.getElementById('qualityRange');
+    const qualityVal = document.getElementById('qualityVal');
+    const compressBtn = document.getElementById('compressBtn');
+    
+    const resultContainer = document.getElementById('resultContainer');
+    const originalSize = document.getElementById('originalSize');
+    const compressedSize = document.getElementById('compressedSize');
+    const outputPreview = document.getElementById('outputPreview');
+    const downloadLink = document.getElementById('downloadLink');
+
+    // Update label angka kualitas saat slider digeser
+    qualityRange.addEventListener('input', () => {
+        qualityVal.textContent = qualityRange.value;
+    });
+
+    compressBtn.addEventListener('click', () => {
+        const file = uploadImage.files[0];
+        if (!file) {
+            alert('Silakan pilih file gambar terlebih dahulu!');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function(event) {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                // Menggunakan ukuran asli gambar
+                canvas.width = img.width;
+                canvas.height = img.height;
+
+                // Menggambar ulang gambar ke canvas
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                // Mengambil nilai kualitas dari slider
+                const quality = parseFloat(qualityRange.value);
+
+                // Konversi canvas ke format JPEG dengan kualitas tertentu
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+                // Menghitung ukuran file baru (dalam byte ke KB/MB)
+                const base64Len = dataUrl.length - dataUrl.indexOf(',');
+                const fileSizeInBytes = 4 * Math.ceil(base64Len / 3)*0.562489; // Perkiraan ukuran base64 ke byte
+                
+                outputPreview.src = dataUrl;
+                downloadLink.href = dataUrl;
+
+                originalSize.textContent = (file.size / 1024).toFixed(2) + ' KB';
+                compressedSize.textContent = (file.sizeInBytes || fileSizeInBytes / 1024).toFixed(2) + ' KB';
+
+                resultContainer.style.display = 'block';
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
