@@ -120,7 +120,7 @@
 
     <div class="options-row">
       <label class="checkbox-container">
-        <input type="checkbox" id="corsBypass" checked> Bypass CORS Proxy (Wajib aktifkan jika link terblokir)
+        <input type="checkbox" id="corsBypass"> Bypass CORS Proxy (Wajib aktifkan jika link terblokir)
       </label>
     </div>
   </div>
@@ -141,6 +141,8 @@
     subtitleOffset: true,
     miniProgressBar: true,
     autoPlayback: true,
+    gesture: false,       /* Mematikan usap/drag layar agar tidak auto-seek */
+    fastForward: false,   /* Mematikan fitur tekan lama untuk fast-forward */
     moreVideoAttr: {
       'playsinline': true,
       'webkit-playsinline': true,
