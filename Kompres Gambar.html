@@ -2,108 +2,276 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kompresor Gambar Sederhana</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kompresor & Crop Gambar Modular</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
     <style>
+        :root {
+            --bg: #0b0f19;
+            --card: #131b2e;
+            --card-inner: #0f172a;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --accent: #38bdf8;
+            --text: #f8fafc;
+            --text-sub: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --success: #10b981;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
             margin: 0;
-            padding: 20px;
+            padding: 12px;
+            min-height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
+
         .container {
+            width: 100%;
             max-width: 500px;
-            margin: 40px auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background: var(--card);
+            padding: 18px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
         }
+
         h2 {
             text-align: center;
-            color: #444;
+            font-size: 1.1rem;
+            color: var(--text);
         }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
+
+        .file-btn {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input[type="file"], input[type="range"] {
             width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.2s;
         }
-        button {
-            background-color: #007bff;
-            color: white;
+
+        .file-btn:active { background: var(--primary-hover); }
+        input[type="file"] { display: none; }
+
+        /* Pilihan Mode Pengerjaan */
+        .mode-selection {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            background: var(--card-inner);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .mode-btn {
+            background: transparent;
             border: none;
-            padding: 10px 15px;
+            color: var(--text-sub);
+            padding: 8px 4px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .mode-btn.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* Area Crop & Canvas */
+        .crop-container {
+            display: none;
             width: 100%;
-            border-radius: 4px;
-            font-size: 16px;
+            max-height: 300px;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .crop-container img {
+            max-width: 100%;
+            display: block;
+        }
+
+        /* Preset Ratio Buttons */
+        .ratio-buttons {
+            display: none;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            width: 100%;
+        }
+
+        .ratio-btn {
+            background: var(--card-inner);
+            border: 1px solid var(--border);
+            color: var(--text-sub);
+            padding: 8px 4px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .ratio-btn.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
             cursor: pointer;
         }
-        button:hover {
-            background-color: #0056b3;
+
+        .btn-process {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
         }
+
+        .btn-process:active { background-color: var(--primary-hover); }
+
         .result {
-            margin-top: 20px;
-            border-top: 1px solid #ddd;
-            padding-top: 15px;
+            display: none;
+            background: var(--card-inner);
+            border: 1px solid var(--border);
+            padding: 14px;
+            border-radius: 12px;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.8rem;
         }
+
+        .result h3 {
+            font-size: 0.95rem;
+            color: var(--accent);
+        }
+
         .result img {
             max-width: 100%;
             height: auto;
             display: block;
-            margin-top: 10px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-top: 6px;
         }
+
         .download-btn {
-            background-color: #28a745;
-            margin-top: 10px;
+            background-color: var(--success);
             text-align: center;
             text-decoration: none;
             display: block;
             color: white;
-            padding: 10px;
-            border-radius: 4px;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-top: 6px;
         }
-        .download-btn:hover {
-            background-color: #218838;
-        }
+
+        .download-btn:active { background-color: #059669; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Kompres Gambar Otomatis</h2>
+    <h2>Edit & Kompres Gambar</h2>
     
-    <div class="form-group">
-        <label for="uploadImage">Pilih Gambar:</label>
-        <input type="file" id="uploadImage" accept="image/*">
+    <label class="file-btn" for="uploadImage">Pilih Gambar</label>
+    <input type="file" id="uploadImage" accept="image/*">
+
+    <!-- Mode Fitur -->
+    <div class="mode-selection" id="modeWrapper">
+        <button class="mode-btn active" data-mode="both">Crop & Kompres</button>
+        <button class="mode-btn" data-mode="crop">Hanya Crop</button>
+        <button class="mode-btn" data-mode="compress">Hanya Kompres</button>
     </div>
 
-    <div class="form-group">
-        <label for="qualityRange">Kualitas Kompresi (<span id="qualityVal">0.7</span>):</label>
+    <!-- Area Crop -->
+    <div class="crop-container" id="cropWrapper">
+        <img id="imageToCrop" src="" alt="Preview">
+    </div>
+
+    <!-- Rasio Potong -->
+    <div class="ratio-buttons" id="ratioWrapper">
+        <button class="ratio-btn active" data-ratio="free">Manual</button>
+        <button class="ratio-btn" data-ratio="1">1:1 / 2:2</button>
+        <button class="ratio-btn" data-ratio="0.75">3:4</button>
+        <button class="ratio-btn" data-ratio="0.666">4:6</button>
+        <button class="ratio-btn" data-ratio="1.777">16:9</button>
+    </div>
+
+    <!-- Slider Kualitas -->
+    <div class="form-group" id="qualityGroup">
+        <label for="qualityRange">Kualitas Kompresi: <span id="qualityVal" style="color: var(--accent);">0.7</span></label>
         <input type="range" id="qualityRange" min="0.1" max="1.0" step="0.1" value="0.7">
     </div>
 
-    <button id="compressBtn">Kompres Sekarang</button>
+    <button class="btn-process" id="compressBtn">Proses Gambar</button>
 
-    <div class="result" id="resultContainer" style="display: none;">
-        <h3>Hasil Kompresi</h3>
+    <div class="result" id="resultContainer">
+        <h3>Hasil Akhir</h3>
         <p><strong>Ukuran Asli:</strong> <span id="originalSize">-</span></p>
         <p><strong>Ukuran Baru:</strong> <span id="compressedSize">-</span></p>
-        <img id="outputPreview" src="" alt="Preview">
-        <a id="downloadLink" class="download-btn" download="compressed.jpg">Unduh Gambar</a>
+        <img id="outputPreview" src="" alt="Hasil">
+        <a id="downloadLink" class="download-btn" download="edited_image.jpg">⬇ Unduh Gambar</a>
     </div>
 </div>
 
 <script>
     const uploadImage = document.getElementById('uploadImage');
+    const imageToCrop = document.getElementById('imageToCrop');
+    const cropWrapper = document.getElementById('cropWrapper');
+    const ratioWrapper = document.getElementById('ratioWrapper');
+    const ratioBtns = document.querySelectorAll('.ratio-btn');
+    
+    const modeWrapper = document.getElementById('modeWrapper');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+
+    const qualityGroup = document.getElementById('qualityGroup');
     const qualityRange = document.getElementById('qualityRange');
     const qualityVal = document.getElementById('qualityVal');
     const compressBtn = document.getElementById('compressBtn');
@@ -114,54 +282,142 @@
     const outputPreview = document.getElementById('outputPreview');
     const downloadLink = document.getElementById('downloadLink');
 
-    // Update label angka kualitas saat slider digeser
+    let cropper = null;
+    let originalFile = null;
+    let imageSrc = null;
+    let currentMode = 'both'; // 'both', 'crop', 'compress'
+
     qualityRange.addEventListener('input', () => {
         qualityVal.textContent = qualityRange.value;
     });
 
+    // Pilihan Mode
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            modeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentMode = btn.getAttribute('data-mode');
+            updateUIByMode();
+        });
+    });
+
+    function updateUIByMode() {
+        if (!originalFile) return;
+
+        if (currentMode === 'compress') {
+            cropWrapper.style.display = 'none';
+            ratioWrapper.style.display = 'none';
+            qualityGroup.style.display = 'flex';
+            if (cropper) { cropper.destroy(); cropper = null; }
+        } else if (currentMode === 'crop') {
+            cropWrapper.style.display = 'block';
+            ratioWrapper.style.display = 'grid';
+            qualityGroup.style.display = 'none';
+            initCropper();
+        } else { // both
+            cropWrapper.style.display = 'block';
+            ratioWrapper.style.display = 'grid';
+            qualityGroup.style.display = 'flex';
+            initCropper();
+        }
+    }
+
+    function initCropper() {
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(imageToCrop, {
+            aspectRatio: NaN,
+            viewMode: 1,
+            autoCropArea: 0.9,
+            responsive: true,
+            background: false
+        });
+    }
+
+    uploadImage.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        originalFile = file;
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+
+        reader.onload = function(event) {
+            imageSrc = event.target.result;
+            imageToCrop.src = imageSrc;
+            
+            modeWrapper.style.display = 'grid';
+            resultContainer.style.display = 'none';
+            
+            updateUIByMode();
+        };
+    });
+
+    // Rasio Crop
+    ratioBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (!cropper) return;
+            ratioBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const ratioAttr = btn.getAttribute('data-ratio');
+            cropper.setAspectRatio(ratioAttr === 'free' ? NaN : parseFloat(ratioAttr));
+        });
+    });
+
+    // Proses Akhir
     compressBtn.addEventListener('click', () => {
-        const file = uploadImage.files[0];
-        if (!file) {
+        if (!originalFile) {
             alert('Silakan pilih file gambar terlebih dahulu!');
             return;
         }
 
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = function(event) {
+        let dataUrl = '';
+        const quality = parseFloat(qualityRange.value);
+
+        if (currentMode === 'crop') {
+            // Hanya Crop (kualitas maksimal 1.0)
+            const croppedCanvas = cropper.getCroppedCanvas();
+            if (!croppedCanvas) return;
+            dataUrl = croppedCanvas.toDataURL('image/jpeg', 1.0);
+
+        } else if (currentMode === 'compress') {
+            // Hanya Kompres
             const img = new Image();
-            img.src = event.target.result;
-            img.onload = function() {
+            img.src = imageSrc;
+            img.onload = () => {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-
-                // Menggunakan ukuran asli gambar
                 canvas.width = img.width;
                 canvas.height = img.height;
-
-                // Menggambar ulang gambar ke canvas
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                // Mengambil nilai kualitas dari slider
-                const quality = parseFloat(qualityRange.value);
-
-                // Konversi canvas ke format JPEG dengan kualitas tertentu
-                const dataUrl = canvas.toDataURL('image/jpeg', quality);
-
-                // Menghitung ukuran file baru (dalam byte ke KB/MB)
-                const base64Len = dataUrl.length - dataUrl.indexOf(',');
-                const fileSizeInBytes = 4 * Math.ceil(base64Len / 3)*0.562489; // Perkiraan ukuran base64 ke byte
+                ctx.drawImage(img, 0, 0);
                 
-                outputPreview.src = dataUrl;
-                downloadLink.href = dataUrl;
+                dataUrl = canvas.toDataURL('image/jpeg', quality);
+                displayResult(dataUrl);
+            };
+            return;
 
-                originalSize.textContent = (file.size / 1024).toFixed(2) + ' KB';
-                compressedSize.textContent = (file.sizeInBytes || fileSizeInBytes / 1024).toFixed(2) + ' KB';
-
-                resultContainer.style.display = 'block';
-            }
+        } else {
+            // Crop & Kompres
+            const croppedCanvas = cropper.getCroppedCanvas();
+            if (!croppedCanvas) return;
+            dataUrl = croppedCanvas.toDataURL('image/jpeg', quality);
         }
+
+        displayResult(dataUrl);
     });
+
+    function displayResult(dataUrl) {
+        const head = 'data:image/jpeg;base64,';
+        const sizeInBytes = Math.round((dataUrl.length - head.length) * 3 / 4);
+
+        outputPreview.src = dataUrl;
+        downloadLink.href = dataUrl;
+
+        originalSize.textContent = (originalFile.size / 1024).toFixed(2) + ' KB';
+        compressedSize.textContent = (sizeInBytes / 1024).toFixed(2) + ' KB';
+
+        resultContainer.style.display = 'flex';
+    }
 </script>
 
 </body>
