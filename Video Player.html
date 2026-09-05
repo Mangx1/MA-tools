@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UltraPower Multi-Engine Video Player</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dashjs@latest/dist/dash.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flv.js@latest/dist/flv.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #0b0f19;
+      color: #e2e8f0;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 15px;
+    }
+    .container {
+      width: 100%;
+      max-width: 960px;
+      background: #1e293b;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+    .artplayer-app {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+    }
+    .panel {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .input-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    input[type="text"] {
+      flex: 1;
+      min-width: 250px;
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #fff;
+      font-size: 0.9rem;
+    }
+    button, .file-btn {
+      padding: 10px 18px;
+      border-radius: 6px;
+      border: none;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      text-align: center;
+    }
+    button:hover, .file-btn:hover { background: #1d4ed8; }
+    .file-btn { background: #475569; }
+    .file-btn:hover { background: #334155; }
+    input[type="file"] { display: none; }
+    .options-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      color: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div id="artplayer" class="artplayer-app"></div>
+
+  <div class="panel">
+    <div class="input-row">
+      <input type="text" id="streamUrl" placeholder="Masukkan Link (.m3u8, .mpd, .flv, .mp4, atau MKV)">
+      <button onclick="playUrl()">Putar Link</button>
+    </div>
+
+    <div class="input-row">
+      <label class="file-btn" for="localFile">Pilih File Lokal (MKV, MP4, MOV, MP3)</label>
+      <input type="file" id="localFile" accept="video/*,audio/*,.mkv" onchange="playFile(event)">
+    </div>
+
+    <div class="options-row">
+      <label class="checkbox-container">
+        <input type="checkbox" id="corsBypass" checked> Bypass CORS Proxy (Wajib aktifkan jika link terblokir)
+      </label>
+    </div>
+  </div>
+</div>
+
+<script>
+  let art = new Artplayer({
+    container: '#artplayer',
+    url: '',
+    type: 'auto',
+    fullscreen: true,
+    fullscreenWeb: true,
+    pip: true,
+    setting: true,
+    flip: true,
+    playbackRate: true,
+    aspectRatio: true,
+    subtitleOffset: true,
+    miniProgressBar: true,
+    autoPlayback: true,
+    customType: {
+      m3u8: function (video, url, art) {
+        if (Hls.isSupported()) {
+          if (art.hls) art.hls.destroy();
+          const hls = new Hls({ xhrSetup: (xhr) => xhr.withCredentials = false });
+          hls.loadSource(url);
+          hls.attachMedia(video);
+          art.hls = hls;
+          art.on('destroy', () => hls.destroy());
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = url;
+        } else {
+          art.notice.show = 'Format HLS (.m3u8) tidak didukung browser ini.';
+        }
+      },
+      mpd: function (video, url, art) {
+        if (dashjs.MediaPlayer) {
+          if (art.dash) art.dash.reset();
+          const player = dashjs.MediaPlayer().create();
+          player.initialize(video, url, true);
+          art.dash = player;
+          art.on('destroy', () => player.reset());
+        }
+      },
+      flv: function (video, url, art) {
+        if (flvjs.isSupported()) {
+          if (art.flv) art.flv.destroy();
+          const flvPlayer = flvjs.createPlayer({ type: 'flv', url: url });
+          flvPlayer.attachMediaElement(video);
+          flvPlayer.load();
+          art.flv = flvPlayer;
+          art.on('destroy', () => flvPlayer.destroy());
+        }
+      }
+    }
+  });
+
+  function processUrl(rawUrl) {
+    const useProxy = document.getElementById('corsBypass').checked;
+    if (useProxy && rawUrl.startsWith('http')) {
+      // Menggunakan CORS Proxy untuk memotong blokir domain dari CDN luar
+      return 'https://corsproxy.io/?' + encodeURIComponent(rawUrl);
+    }
+    return rawUrl;
+  }
+
+  function playUrl() {
+    const rawUrl = document.getElementById('streamUrl').value.trim();
+    if (!rawUrl) return alert('Masukkan URL media!');
+
+    const finalUrl = processUrl(rawUrl);
+    let type = 'auto';
+
+    if (rawUrl.includes('.m3u8')) type = 'm3u8';
+    else if (rawUrl.includes('.mpd')) type = 'mpd';
+    else if (rawUrl.includes('.flv')) type = 'flv';
+
+    art.switchUrl(finalUrl, type).then(() => {
+      art.play();
+      art.notice.show = 'Berhasil memuat stream!';
+    }).catch(err => {
+      art.notice.show = 'Gagal memutar. Coba toggle status CORS Proxy.';
+      console.error(err);
+    });
+  }
+
+  function playFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const fileUrl = URL.createObjectURL(file);
+    art.switchUrl(fileUrl, 'auto').then(() => {
+      art.play();
+      art.notice.show = `Memutar file lokal: ${file.name}`;
+    });
+  }
+</script>
+
+</body>
+</html>
