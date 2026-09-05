@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radio Online Player</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+        .player-card {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h2 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .select-wrapper {
+            margin-bottom: 20px;
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ccd0d5;
+            font-size: 16px;
+            background-color: #fff;
+            outline: none;
+            cursor: pointer;
+        }
+        select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+        audio {
+            width: 100%;
+            outline: none;
+        }
+        .status {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="player-card">
+        <h2>📻 Live Radio Player</h2>
+        
+        <div class="select-wrapper">
+            <select id="station-list">
+                <option value="">-- Pilih Stasiun Radio --</option>
+                <option value="https://wz.mari.co.id:1936/noice_genfm/genfm/chunklist_w1473803959.m3u8">GEN FM</option>
+                <option value="https://wz.mari.co.id:1936/noice_jakfm/jakfm/chunklist_w295226930.m3u8">JAK FM</option>
+                <option value="https://wz.mari.co.id:1936/noice_kisfm/kisfm/chunklist_w2009867551.m3u8">KIS FM</option>
+                <option value="https://wz.mari.co.id:1936/noice_mustangfm/mustangfm/chunklist_w1232241907.m3u8">Mustang FM (Noice)</option>
+                <option value="https://wz.mari.co.id:1936/web_mustangfm/mustangfm/chunklist_w1340820044.m3u8">Mustang FM (Web)</option>
+                <option value="https://wz.mari.co.id:1936/noice_mostfm/mostfm/chunklist_w588638849.m3u8">MOST FM</option>
+                <option value="https://wz.mari.co.id:1936/noice_hotfm/hotfm/chunklist_w919822700.m3u8">HOT FM</option>
+                <option value="https://stream.rcs.revma.com/h77wwp48kxcwv?city=West%2520Jakarta">Prambors</option>
+                <option value="https://stream.radiojar.com/7csmg90fuqruv">The Rockin Life</option>
+                <option value="https://stream.rcs.revma.com/ugpyzu9n5k3vv">Ardan Radio</option>
+                <option value="https://stream.radiojar.com/4ywdgup3bnzuv">IRadio</option>
+            </select>
+        </div>
+
+        <audio id="audio-player" controls></audio>
+        
+        <div class="status" id="status-text">Silakan pilih stasiun radio untuk memutar.</div>
+    </div>
+
+    <script>
+        const audio = document.getElementById('audio-player');
+        const stationList = document.getElementById('station-list');
+        const statusText = document.getElementById('status-text');
+        let hls = null;
+
+        stationList.addEventListener('change', function() {
+            const url = this.value;
+            const stationName = this.options[this.selectedIndex].text;
+            
+            // Jika memilih opsi kosong
+            if (!url) {
+                audio.pause();
+                audio.removeAttribute('src');
+                if (hls) hls.destroy();
+                statusText.innerText = "Silakan pilih stasiun radio untuk memutar.";
+                return;
+            }
+
+            statusText.innerText = "Memuat " + stationName + "...";
+
+            // Bersihkan instance HLS sebelumnya jika ada
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+
+            // Logika untuk file .m3u8
+            if (url.includes('.m3u8')) {
+                if (Hls.isSupported()) {
+                    hls = new Hls();
+                    hls.loadSource(url);
+                    hls.attachMedia(audio);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        audio.play().then(() => {
+                            statusText.innerText = "Memutar " + stationName;
+                        }).catch(e => console.log("Play tertahan oleh browser", e));
+                    });
+                } 
+                // Fallback untuk browser yang mendukung HLS secara native (seperti Safari)
+                else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+                    audio.src = url;
+                    audio.addEventListener('loadedmetadata', function() {
+                        audio.play().then(() => {
+                            statusText.innerText = "Memutar " + stationName;
+                        }).catch(e => console.log("Play tertahan oleh browser", e));
+                    });
+                }
+            } 
+            // Logika untuk stream audio biasa (MP3/AAC)
+            else {
+                audio.src = url;
+                audio.play().then(() => {
+                    statusText.innerText = "Memutar " + stationName;
+                }).catch(e => console.log("Play tertahan oleh browser", e));
+            }
+        });
+
+        // Event listener saat audio dijeda atau dimainkan manual
+        audio.addEventListener('pause', () => {
+            if(stationList.value) statusText.innerText = "Jeda...";
+        });
+        audio.addEventListener('play', () => {
+            if(stationList.value) statusText.innerText = "Memutar " + stationList.options[stationList.selectedIndex].text;
+        });
+    </script>
+</body>
+</html>
