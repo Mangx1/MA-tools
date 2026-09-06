@@ -251,6 +251,11 @@
     .stat-bar-container { display: flex; height: 6px; background: #263238; border-radius: 3px; overflow: hidden; }
     .stat-bar-left { background: #4db6ac; height: 100%; }
     .stat-bar-right { background: #ffca28; height: 100%; }
+  
+    /* Android safe-area: beri ruang aman di atas agar judul tidak tertutup status bar */
+    body {
+      padding-top: max(15px, calc(env(safe-area-inset-top, 0px) + 15px));
+    }
   </style>
 </head>
 <body>
