@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YT Subtitle SRT Generator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #12181b; color: #f0f0f0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 480px; }
+    
+    .app-header { text-align: center; margin-bottom: 20px; }
+    .app-header h2 { color: #4db6ac; font-size: 1.4rem; }
+    .app-header p { font-size: 0.85rem; color: #a0a0a0; margin-top: 4px; }
+    
+    .card { background: #1e272c; padding: 16px; border-radius: 12px; margin-bottom: 15px; }
+    
+    label { display: block; font-size: 0.85rem; color: #b0bec5; margin-bottom: 8px; }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #37474f;
+      background: #12181b;
+      color: #fff;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+    
+    .btn {
+      background: #4db6ac;
+      color: #12181b;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      font-size: 0.95rem;
+      transition: 0.2s;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+    }
+    .btn:hover { background: #80cbc4; }
+    
+    .btn-secondary {
+      background: #263238;
+      color: #4db6ac;
+      border: 1px solid #4db6ac;
+      margin-top: 8px;
+    }
+
+    .status { margin: 10px 0; font-size: 0.85rem; text-align: center; color: #ffca28; min-height: 20px; word-break: break-word; }
+    
+    .result-box { display: none; }
+    
+    textarea {
+      width: 100%;
+      height: 240px;
+      background: #12181b;
+      border: 1px solid #37474f;
+      border-radius: 8px;
+      color: #81c784;
+      font-family: monospace;
+      font-size: 0.8rem;
+      padding: 10px;
+      resize: vertical;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="app-header">
+    <h2>YT Subtitle SRT Generator</h2>
+    <p>Ambil transkrip YouTube & ubah jadi SRT Bahasa Indonesia</p>
+  </div>
+
+  <div class="card">
+    <label for="ytUrlInput">Tempel Link Video YouTube:</label>
+    <input type="text" id="ytUrlInput" placeholder="https://youtu.be/aRCgyeyitdc" required>
+    <button class="btn" onclick="generateIndoSubtitles()">⚡ Buat Subtitle Indonesia (.SRT)</button>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <div class="card result-box" id="resultCard">
+    <label>Pratinjau File SRT (Tanpa Duplikasi):</label>
+    <textarea id="srtPreview" readonly></textarea>
+    
+    <a id="downloadSrtBtn" download="subtitle_indonesia.srt" class="btn">💾 Download File Subtitle (.SRT)</a>
+    <button class="btn btn-secondary" onclick="copySrtToClipboard()">📋 Salin Teks SRT</button>
+  </div>
+</div>
+
+<script>
+  function extractVideoId(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|shorts\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  }
+
+  function parseTimeToSeconds(timeStr) {
+    const parts = timeStr.split(':').map(Number);
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return 0;
+  }
+
+  function secondsToSRTTime(sec) {
+    const hrs = Math.floor(sec / 3600).toString().padStart(2, '0');
+    const mins = Math.floor((sec % 3600) / 60).toString().padStart(2, '0');
+    const secs = Math.floor(sec % 60).toString().padStart(2, '0');
+    return `${hrs}:${mins}:${secs},000`;
+  }
+
+  // ALGORITMA PEMBERSIH TEKS REPETITIF / DUPLIKAT
+  function removeRepetitions(str) {
+    if (!str) return '';
+    
+    // 1. Bersihkan spasi ganda
+    let cleanStr = str.replace(/\s+/g, ' ').trim();
+    
+    // 2. Hapus frasa berulang (misal: "A B C A B C" -> "A B C")
+    let prev;
+    do {
+      prev = cleanStr;
+      cleanStr = cleanStr.replace(/\b(\w+(?:\s+\w+){0,6})\s+\1\b/gi, '$1');
+    } while (cleanStr !== prev);
+
+    return cleanStr;
+  }
+
+  async function translateText(text) {
+    try {
+      const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=id&dt=t&q=${encodeURIComponent(text)}`);
+      const data = await res.json();
+      if (data && data[0]) {
+        return data[0].map(item => item[0]).join('');
+      }
+      return text;
+    } catch (e) {
+      return text;
+    }
+  }
+
+  async function generateIndoSubtitles() {
+    const urlInput = document.getElementById('ytUrlInput').value.trim();
+    const status = document.getElementById('status');
+    const resultCard = document.getElementById('resultCard');
+    const srtPreview = document.getElementById('srtPreview');
+    const downloadSrtBtn = document.getElementById('downloadSrtBtn');
+
+    if (!urlInput) {
+      status.style.color = '#ff5252';
+      status.innerText = 'Tempelkan link video YouTube terlebih dahulu!';
+      return;
+    }
+
+    const videoId = extractVideoId(urlInput);
+    if (!videoId) {
+      status.style.color = '#ff5252';
+      status.innerText = 'URL YouTube tidak valid.';
+      return;
+    }
+
+    status.style.color = '#ffca28';
+    status.innerText = 'Mengambil transkrip dari YouTube...';
+    resultCard.style.display = 'none';
+
+    try {
+      const transcriptRes = await fetch(`https://youtube-transcript.ai/transcript/${videoId}.txt`);
+      if (!transcriptRes.ok) throw new Error('Gagal mengambil transkrip/video tidak memiliki subtitle.');
+
+      const rawMarkdown = await transcriptRes.text();
+      const lines = rawMarkdown.split('\n');
+      let rawItems = [];
+
+      // 1. Parsing Timestamp & Teks
+      for (let line of lines) {
+        line = line.trim();
+        const match = line.match(/^\[((\d{1,2}:)?\d{1,2}:\d{2})\]\s*(.+)/);
+        if (match) {
+          const rawText = match[3].trim();
+          const cleanText = removeRepetitions(rawText);
+          if (cleanText.length > 0) {
+            rawItems.push({
+              sec: parseTimeToSeconds(match[1]),
+              text: cleanText
+            });
+          }
+        }
+      }
+
+      if (rawItems.length === 0) throw new Error('Transkrip kosong atau tidak ditemukan.');
+
+      // 2. Filter Baris Duplikat Berurutan
+      let items = [];
+      let lastText = '';
+      for (let item of rawItems) {
+        if (item.text.toLowerCase() !== lastText.toLowerCase()) {
+          items.push(item);
+          lastText = item.text;
+        }
+      }
+
+      status.innerText = `Menemukan ${items.length} kalimat bersih. Menerjemahkan ke Bahasa Indonesia...`;
+
+      // 3. Atur Durasi Waktu SRT (Max 4-5 Detik per blok agar tidak menumpuk)
+      for (let i = 0; i < items.length; i++) {
+        const startSec = items[i].sec;
+        let endSec = (i < items.length - 1) ? items[i + 1].sec : startSec + 4;
+        
+        // Batasi durasi per baris maksimal 5 detik agar subtitle tidak terlalu panjang
+        if (endSec - startSec > 5) endSec = startSec + 5;
+        if (endSec <= startSec) endSec = startSec + 2;
+
+        items[i].startSRT = secondsToSRTTime(startSec);
+        items[i].endSRT = secondsToSRTTime(endSec);
+      }
+
+      // 4. Menerjemahkan dalam Batch
+      const batchSize = 10;
+      for (let i = 0; i < items.length; i += batchSize) {
+        const chunk = items.slice(i, i + batchSize);
+        status.innerText = `Menerjemahkan ${i + 1} - ${Math.min(i + batchSize, items.length)} dari ${items.length}...`;
+        
+        const translatedChunk = await Promise.all(chunk.map(item => translateText(item.text)));
+        for (let j = 0; j < chunk.length; j++) {
+          chunk[j].translatedText = removeRepetitions(translatedChunk[j]);
+        }
+      }
+
+      // 5. Susun File SRT
+      let srtContent = '';
+      let srtIndex = 1;
+      items.forEach((item) => {
+        if (item.translatedText && item.translatedText.trim() !== '') {
+          srtContent += `${srtIndex}\n`;
+          srtContent += `${item.startSRT} --> ${item.endSRT}\n`;
+          srtContent += `${item.translatedText}\n\n`;
+          srtIndex++;
+        }
+      });
+
+      srtPreview.value = srtContent;
+
+      const blob = new Blob([srtContent], { type: 'text/plain;charset=utf-8' });
+      downloadSrtBtn.href = URL.createObjectURL(blob);
+      downloadSrtBtn.download = `subtitle_indo_${videoId}.srt`;
+
+      resultCard.style.display = 'block';
+      status.style.color = '#4db6ac';
+      status.innerText = 'Selesai! Subtitle bersih tanpa duplikasi siap di-download.';
+
+    } catch (err) {
+      console.error(err);
+      status.style.color = '#ff5252';
+      status.innerText = 'Error: ' + err.message;
+    }
+  }
+
+  function copySrtToClipboard() {
+    const srtPreview = document.getElementById('srtPreview');
+    srtPreview.select();
+    srtPreview.setSelectionRange(0, 99999);
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(srtPreview.value);
+      } else {
+        document.execCommand('copy');
+      }
+      alert('Teks SRT berhasil disalin!');
+    } catch (err) {
+      alert('Gagal menyalin teks.');
+    }
+  }
+</script>
+
+</body>
+</html>

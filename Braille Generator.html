@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Braille Art Generator - Smart Trim Engine</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      width: 100%;
+      max-width: 650px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .header {
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 1.3rem;
+      color: #38bdf8;
+    }
+    .header p {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+    .card {
+      background: #1e293b;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .btn-file {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #0284c7;
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .control-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #cbd5e1;
+    }
+    .control-label span.val {
+      color: #38bdf8;
+      font-weight: bold;
+    }
+    select, input[type="range"] {
+      width: 100%;
+      accent-color: #38bdf8;
+    }
+    select {
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    textarea {
+      width: 100%;
+      height: 380px;
+      background: #090d16;
+      color: #4ade80;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 6px;
+      line-height: 6px;
+      letter-spacing: 0;
+      white-space: pre;
+      overflow: auto;
+    }
+    .btn-copy {
+      background: #22c55e;
+      color: #052e16;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.95rem;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
+    .info-bar {
+      font-size: 0.75rem;
+      color: #38bdf8;
+      text-align: center;
+      margin-top: 6px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h1>Braille Generator (Auto Trim BG)</h1>
+      <p>Mengonversi foto & membuang spasi kosong di sekitar objek</p>
+    </div>
+
+    <div class="card">
+      <label class="btn-file" for="upload">📁 Pilih Gambar (JPG / PNG)</label>
+      <input type="file" id="upload" accept="image/*">
+
+      <div class="controls">
+        <div class="control-row">
+          <div class="control-label">
+            <label>Rendering Engine:</label>
+          </div>
+          <select id="engine">
+            <option value="hybrid" selected>⭐ Hybrid (Garis Tepi + Bayangan Dither)</option>
+            <option value="sobel">Sobel Edge Detector (Garis Siluet Saja)</option>
+            <option value="atkinson">Atkinson Dithering</option>
+          </select>
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <label>Skala Detil (Resolusi Objek):</label>
+            <span class="val" id="valWidth">90</span>
+          </div>
+          <input type="range" id="width" min="20" max="120" value="90">
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <label>Kontras Gambar:</label>
+            <span class="val" id="valContrast">-100</span>
+          </div>
+          <input type="range" id="contrast" min="-100" max="100" value="-100">
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <label>Sensitivitas Garis Tepi (Edge):</label>
+            <span class="val" id="valEdge">50</span>
+          </div>
+          <input type="range" id="edgeThresh" min="20" max="200" value="50">
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <label>Koreksi Tinggi (Aspek Rasio):</label>
+            <span class="val" id="valAspect">0.75</span>
+          </div>
+          <input type="range" id="aspectCorr" min="0.5" max="1.5" step="0.05" value="0.75">
+        </div>
+
+        <div class="checkbox-group">
+          <label for="trimBG"><input type="checkbox" id="trimBG" checked> ✂️ <b>Potong & Buang Spasi Kosong Background</b></label>
+          <label for="invert"><input type="checkbox" id="invert" checked> Balik Warna (Invert)</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <textarea id="output" readonly placeholder="Unggah foto..."></textarea>
+      <button class="btn-copy" id="btnCopy">Salin Teks Braille</button>
+      <div class="info-bar" id="infoBar">Spasi Kosong Otomatis Dibuang</div>
+    </div>
+  </div>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
+    const upload = document.getElementById('upload');
+    const engineSelect = document.getElementById('engine');
+    const widthInput = document.getElementById('width');
+    const contrastInput = document.getElementById('contrast');
+    const edgeThreshInput = document.getElementById('edgeThresh');
+    const aspectCorrInput = document.getElementById('aspectCorr');
+    const trimBGInput = document.getElementById('trimBG');
+    const invertInput = document.getElementById('invert');
+    const output = document.getElementById('output');
+    const btnCopy = document.getElementById('btnCopy');
+    const infoBar = document.getElementById('infoBar');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const valWidth = document.getElementById('valWidth');
+    const valContrast = document.getElementById('valContrast');
+    const valEdge = document.getElementById('valEdge');
+    const valAspect = document.getElementById('valAspect');
+
+    let currentImg = null;
+
+    const dotMap = [
+      [0x01, 0x08],
+      [0x02, 0x10],
+      [0x04, 0x20],
+      [0x40, 0x80]
+    ];
+
+    upload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const img = new Image();
+        img.onload = () => {
+          currentImg = img;
+          processImage();
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    [engineSelect, widthInput, contrastInput, edgeThreshInput, aspectCorrInput, trimBGInput, invertInput].forEach(elem => {
+      elem.addEventListener('input', () => {
+        updateLabels();
+        if (currentImg) processImage();
+      });
+    });
+
+    function updateLabels() {
+      valWidth.textContent = widthInput.value;
+      valContrast.textContent = (contrastInput.value >= 0 ? '+' : '') + contrastInput.value;
+      valEdge.textContent = edgeThreshInput.value;
+      valAspect.textContent = aspectCorrInput.value;
+    }
+
+    function processImage() {
+      const charWidth = parseInt(widthInput.value);
+      const contrast = parseInt(contrastInput.value);
+      const edgeThreshold = parseInt(edgeThreshInput.value);
+      const aspectCorrection = parseFloat(aspectCorrInput.value);
+      const engine = engineSelect.value;
+      const invert = invertInput.checked;
+      const trimBG = trimBGInput.checked;
+
+      const pWidth = charWidth * 2;
+      const imgAspect = currentImg.height / currentImg.width;
+      const pHeight = Math.max(4, Math.round(((pWidth * imgAspect) * aspectCorrection) / 4) * 4);
+
+      canvas.width = pWidth;
+      canvas.height = pHeight;
+
+      ctx.drawImage(currentImg, 0, 0, pWidth, pHeight);
+      const rawData = ctx.getImageData(0, 0, pWidth, pHeight).data;
+
+      const gray = new Float32Array(pWidth * pHeight);
+      const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+
+      for (let i = 0; i < gray.length; i++) {
+        const idx = i * 4;
+        let lum = 0.299 * rawData[idx] + 0.587 * rawData[idx + 1] + 0.114 * rawData[idx + 2];
+        lum = factor * (lum - 128) + 128;
+        gray[i] = Math.min(255, Math.max(0, lum));
+      }
+
+      const binaryMap = new Uint8Array(pWidth * pHeight);
+
+      if (engine === 'sobel' || engine === 'hybrid') {
+        const Gx = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+        const Gy = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+
+        for (let y = 1; y < pHeight - 1; y++) {
+          for (let x = 1; x < pWidth - 1; x++) {
+            let gx = 0, gy = 0, k = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                const val = gray[(y + dy) * pWidth + (x + dx)];
+                gx += val * Gx[k];
+                gy += val * Gy[k];
+                k++;
+              }
+            }
+            if (Math.sqrt(gx * gx + gy * gy) > edgeThreshold) {
+              binaryMap[y * pWidth + x] = 1;
+            }
+          }
+        }
+      }
+
+      if (engine === 'atkinson' || engine === 'hybrid') {
+        const atkGray = new Float32Array(gray);
+        for (let y = 0; y < pHeight; y++) {
+          for (let x = 0; x < pWidth; x++) {
+            const idx = y * pWidth + x;
+            const oldVal = atkGray[idx];
+            const newVal = oldVal < 128 ? 0 : 255;
+            if (engine === 'atkinson') binaryMap[idx] = newVal === 255 ? 1 : 0;
+            else if (engine === 'hybrid' && newVal === 0) binaryMap[idx] = 1;
+
+            const err = (oldVal - newVal) / 8;
+            if (x + 1 < pWidth) atkGray[idx + 1] += err;
+            if (x + 2 < pWidth) atkGray[idx + 2] += err;
+            if (x - 1 >= 0 && y + 1 < pHeight) atkGray[(y + 1) * pWidth + (x - 1)] += err;
+            if (y + 1 < pHeight) atkGray[(y + 1) * pWidth + x] += err;
+            if (x + 1 < pWidth && y + 1 < pHeight) atkGray[(y + 1) * pWidth + (x + 1)] += err;
+            if (y + 2 < pHeight) atkGray[(y + 2) * pWidth + x] += err;
+          }
+        }
+      }
+
+      // Generate Braille Grid
+      let lines = [];
+      for (let y = 0; y < pHeight; y += 4) {
+        let line = '';
+        for (let x = 0; x < pWidth; x += 2) {
+          let code = 0;
+          for (let dy = 0; dy < 4; dy++) {
+            for (let dx = 0; dx < 2; dx++) {
+              const px = x + dx;
+              const py = y + dy;
+              if (px < pWidth && py < pHeight) {
+                let bit = binaryMap[py * pWidth + px];
+                if (invert) bit = bit === 1 ? 0 : 1;
+                if (bit === 1) code |= dotMap[dy][dx];
+              }
+            }
+          }
+          line += (code === 0) ? '⠀' : String.fromCharCode(0x2800 + code);
+        }
+        lines.push(line);
+      }
+
+      // FITUR BARU: Pemotong Spasi Kosong (Trim Background Padding)
+      if (trimBG) {
+        // Trim kanan setiap baris
+        lines = lines.map(l => l.replace(/⠀+$/, ''));
+
+        // Cari batas kiri minimal
+        let minIndent = Infinity;
+        lines.forEach(l => {
+          if (l.trim().length > 0) {
+            const match = l.match(/^⠀*/);
+            const indent = match ? match[0].length : 0;
+            if (indent < minIndent) minIndent = indent;
+          }
+        });
+
+        // Potong spasi di sebelah kiri yang berlebihan
+        if (minIndent > 0 && minIndent !== Infinity) {
+          lines = lines.map(l => l.substring(minIndent));
+        }
+
+        // Hapus baris kosong di atas & bawah
+        while (lines.length > 0 && lines[0].trim().length === 0) lines.shift();
+        while (lines.length > 0 && lines[lines.length - 1].trim().length === 0) lines.pop();
+      }
+
+      output.value = lines.join('\n');
+      infoBar.textContent = `✓ Spasi Kosong Berhasil Dipotong (Siap Copas Rapi)`;
+    }
+
+    btnCopy.addEventListener('click', () => {
+      if (!output.value) return;
+      output.select();
+      navigator.clipboard.writeText(output.value);
+      btnCopy.textContent = '✓ Tersalin Rapi!';
+      setTimeout(() => btnCopy.textContent = 'Salin Teks Braille', 2000);
+    });
+
+    updateLabels();
+  </script>
+</body>
+</html>

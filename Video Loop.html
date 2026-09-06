@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>True Zero-Delay Duplicator Engine</title>
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --card: #131b2e;
+            --card-inner: #0f172a;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --accent: #38bdf8;
+            --text: #f8fafc;
+            --text-sub: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --success: #10b981;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 12px;
+            min-height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card);
+            padding: 18px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        h2 { text-align: center; font-size: 1.1rem; color: var(--text); }
+        p.subtitle { text-align: center; font-size: 0.75rem; color: var(--text-sub); margin-top: -8px; }
+
+        /* Custom Viewport Seamless Layer */
+        .viewport {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        video {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        video.active {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 2;
+        }
+
+        /* Custom Controls Bar */
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--card-inner);
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .btn-play-pause {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .time-display {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--accent);
+            flex: 1;
+            text-align: right;
+        }
+
+        .input-box {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--card-inner);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .btn-file {
+            background: var(--primary);
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        input[type="file"] { display: none; }
+
+        .file-name {
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-align: center;
+            word-break: break-all;
+        }
+
+        select {
+            width: 100%;
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .btn-process {
+            background: var(--success);
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .btn-process:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .status-box {
+            background: var(--card-inner);
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>True Zero-Delay Duplicator</h2>
+    <p class="subtitle">Duplikasi durasi video mulus tanpa jeda</p>
+
+    <!-- Layer Dual Player GPU -->
+    <div class="viewport">
+        <video id="v1" class="active" playsinline webkit-playsinline></video>
+        <video id="v2" playsinline webkit-playsinline></video>
+    </div>
+
+    <!-- Timeline & Timer -->
+    <div class="controls-bar">
+        <button class="btn-play-pause" id="btnTogglePlay" disabled>▶ Putar</button>
+        <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
+    </div>
+
+    <div class="input-box">
+        <label class="btn-file" for="fileInput">Pilih Video Dari HP</label>
+        <input type="file" id="fileInput" accept="video/*">
+        <span class="file-name" id="fileName">Belum ada file dipilih</span>
+
+        <label style="font-size: 0.75rem; color: var(--text-sub); margin-top: 4px;">Jumlah Duplikasi Loop:</label>
+        <select id="loopCount">
+            <option value="2">2x Pengulangan</option>
+            <option value="3" selected>3x Pengulangan</option>
+            <option value="5">5x Pengulangan</option>
+            <option value="10">10x Pengulangan</option>
+        </select>
+    </div>
+
+    <button class="btn-process" id="btnApply" disabled>⚡ Terapkan Duplikasi Seamless</button>
+
+    <div class="status-box" id="statusText">Pilih file video terlebih dahulu.</div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const fileName = document.getElementById('fileName');
+    const loopCount = document.getElementById('loopCount');
+    const btnApply = document.getElementById('btnApply');
+    const btnTogglePlay = document.getElementById('btnTogglePlay');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const statusText = document.getElementById('statusText');
+
+    const v1 = document.getElementById('v1');
+    const v2 = document.getElementById('v2');
+
+    let videoUrl = null;
+    let baseDuration = 0;
+    let totalLoops = 3;
+    let currentLoopIndex = 0;
+    
+    let activeVid = v1;
+    let inactiveVid = v2;
+
+    let isPlaying = false;
+    let isSwitching = false;
+    let animFrameReq = null;
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (videoUrl) URL.revokeObjectURL(videoUrl);
+        videoUrl = URL.createObjectURL(file);
+        fileName.textContent = `File dipilih: ${file.name}`;
+
+        v1.src = videoUrl;
+        v1.onloadedmetadata = () => {
+            baseDuration = v1.duration;
+            btnApply.disabled = false;
+            statusText.textContent = `Video dimuat (${baseDuration.toFixed(1)}s). Pilih jumlah duplikasi.`;
+        };
+    });
+
+    btnApply.addEventListener('click', () => {
+        if (!videoUrl) return;
+
+        totalLoops = parseInt(loopCount.value);
+        currentLoopIndex = 0;
+
+        v1.src = videoUrl;
+        v2.src = videoUrl;
+
+        v1.load();
+        v2.load();
+
+        activeVid = v1;
+        inactiveVid = v2;
+
+        v1.classList.add('active');
+        v2.classList.remove('active');
+
+        btnTogglePlay.disabled = false;
+        const totalDuration = baseDuration * totalLoops;
+        timeDisplay.textContent = `00:00 / ${formatTime(totalDuration)}`;
+        statusText.textContent = `Berhasil diduplikat ${totalLoops}x! Total Durasi: ${formatTime(totalDuration)}.`;
+
+        startPlayback();
+    });
+
+    btnTogglePlay.addEventListener('click', () => {
+        if (isPlaying) {
+            pausePlayback();
+        } else {
+            startPlayback();
+        }
+    });
+
+    function startPlayback() {
+        if (!videoUrl) return;
+
+        isPlaying = true;
+        btnTogglePlay.textContent = "⏸ Jeda";
+
+        activeVid.play().then(() => {
+            updateTimerLoop();
+        }).catch(err => console.error(err));
+    }
+
+    function pausePlayback() {
+        isPlaying = false;
+        btnTogglePlay.textContent = "▶ Putar";
+        v1.pause();
+        v2.pause();
+        if (animFrameReq) cancelAnimationFrame(animFrameReq);
+    }
+
+    function updateTimerLoop() {
+        if (!isPlaying) return;
+
+        const currentVidTime = activeVid.currentTime;
+        const currentTotalTime = (currentLoopIndex * baseDuration) + currentVidTime;
+        const maxTotalTime = baseDuration * totalLoops;
+
+        timeDisplay.textContent = `${formatTime(currentTotalTime)} / ${formatTime(maxTotalTime)}`;
+
+        // Picu perpindahan seamless 0.08 detik sebelum video habis
+        if (!isSwitching && (baseDuration - currentVidTime <= 0.08)) {
+            triggerSeamlessLoop();
+        }
+
+        animFrameReq = requestAnimationFrame(updateTimerLoop);
+    }
+
+    function triggerSeamlessLoop() {
+        isSwitching = true;
+        currentLoopIndex++;
+
+        if (currentLoopIndex >= totalLoops) {
+            pausePlayback();
+            currentLoopIndex = 0;
+            v1.currentTime = 0;
+            v2.currentTime = 0;
+            timeDisplay.textContent = `00:00 / ${formatTime(baseDuration * totalLoops)}`;
+            isSwitching = false;
+            return;
+        }
+
+        inactiveVid.currentTime = 0;
+        inactiveVid.play().then(() => {
+            inactiveVid.classList.add('active');
+            activeVid.classList.remove('active');
+
+            activeVid.pause();
+            activeVid.currentTime = 0;
+
+            // Tukar layer buffer
+            const temp = activeVid;
+            activeVid = inactiveVid;
+            inactiveVid = temp;
+
+            setTimeout(() => { isSwitching = false; }, 200);
+        });
+    }
+
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+</script>
+
+</body>
+</html>

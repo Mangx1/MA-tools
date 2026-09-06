@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Info Cuaca & Kualitas Udara</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #12181b; color: #f0f0f0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 480px; }
+    
+    .app-header { text-align: center; margin-bottom: 15px; }
+    .app-header h2 { color: #4db6ac; font-size: 1.4rem; }
+    
+    .card { background: #1e272c; padding: 15px; border-radius: 12px; margin-bottom: 12px; }
+    
+    .search-box { display: flex; gap: 8px; margin-bottom: 10px; }
+    input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #37474f; background: #12181b; color: #fff; font-size: 0.9rem; }
+    .btn { background: #4db6ac; color: #12181b; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    .btn-gps { width: 100%; background: #263238; color: #4db6ac; border: 1px solid #4db6ac; margin-top: 5px; }
+
+    /* Current Weather UI */
+    .weather-main { text-align: center; padding: 10px 0; }
+    .city-name { font-size: 1.2rem; font-weight: bold; color: #fff; }
+    .temp-large { font-size: 3rem; font-weight: bold; color: #4db6ac; margin: 5px 0; }
+    .condition { font-size: 1rem; color: #b0bec5; margin-bottom: 15px; }
+
+    .details-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; text-align: center; }
+    .detail-item { background: #263238; padding: 10px; border-radius: 8px; }
+    .detail-label { font-size: 0.75rem; color: #a0a0a0; }
+    .detail-val { font-size: 1rem; font-weight: bold; color: #fff; margin-top: 2px; }
+
+    /* AQI Card */
+    .aqi-box { text-align: center; border-left: 5px solid #4caf50; }
+    .aqi-title { font-size: 0.85rem; color: #b0bec5; }
+    .aqi-value { font-size: 1.8rem; font-weight: bold; margin: 4px 0; }
+    .aqi-status { font-size: 0.85rem; font-weight: bold; padding: 4px 10px; border-radius: 20px; display: inline-block; }
+
+    /* Forecast */
+    .forecast-title { font-size: 0.9rem; color: #4db6ac; font-weight: bold; margin-bottom: 10px; }
+    .forecast-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #263238; font-size: 0.85rem; }
+    .forecast-item:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="app-header">
+    <h2>Cuaca & Polusi Udara</h2>
+  </div>
+
+  <!-- Search & GPS -->
+  <div class="card">
+    <div class="search-box">
+      <input type="text" id="cityInput" placeholder="Cari nama kota (misal: Surabaya)...">
+      <button class="btn" onclick="searchCity()">Cari</button>
+    </div>
+    <button class="btn btn-gps" onclick="useGPS()">📍 Gunakan Lokasi GPS</button>
+  </div>
+
+  <!-- Realtime Weather Card -->
+  <div class="card weather-main" id="weatherCard">
+    <div class="city-name" id="cityName">Memuat Lokasi...</div>
+    <div class="temp-large" id="tempVal">--°C</div>
+    <div class="condition" id="weatherCond">Mengambil data cuaca...</div>
+
+    <div class="details-grid">
+      <div class="detail-item">
+        <div class="detail-label">Kelembaban</div>
+        <div class="detail-val" id="humidityVal">--%</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Kecepatan Angin</div>
+        <div class="detail-val" id="windVal">-- km/jam</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AQI (Kualitas Udara) Card -->
+  <div class="card aqi-box" id="aqiCard">
+    <div class="aqi-title">Kualitas Udara Real-time (AQI)</div>
+    <div class="aqi-value" id="aqiVal">--</div>
+    <span class="aqi-status" id="aqiStatus">Memuat...</span>
+  </div>
+
+  <!-- 5 Days Forecast -->
+  <div class="card">
+    <div class="forecast-title">Prakiraan Cuaca 5 Hari</div>
+    <div id="forecastList">
+      <!-- Diisi JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+  // Mapping Kode Cuaca WMO
+  const weatherCodes = {
+    0: "Cerah",
+    1: "Cerah Berawan", 2: "Berawan", 3: "Sangat Berawan",
+    45: "Berkabut", 48: "Kabut Tebal",
+    51: "Gerimis Ringan", 53: "Gerimis Sedang", 55: "Gerimis Lebat",
+    61: "Hujan Ringan", 63: "Hujan Sedang", 65: "Hujan Lebat",
+    80: "Hujan Lokal", 81: "Hujan Lokal Lebat",
+    95: "Badai Petir"
+  };
+
+  // 1. Cari berdasarkan Nama Kota (Geocoding API)
+  async function searchCity() {
+    const query = document.getElementById('cityInput').value.trim();
+    if (!query) return;
+
+    document.getElementById('cityName').innerText = "Mencari...";
+    try {
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=id&format=json`);
+      const data = await res.json();
+
+      if (data.results && data.results.length > 0) {
+        const place = data.results[0];
+        const name = `${place.name}, ${place.country_code.toUpperCase()}`;
+        getWeatherData(place.latitude, place.longitude, name);
+      } else {
+        alert("Kota tidak ditemukan, coba nama kota lain.");
+      }
+    } catch (e) {
+      alert("Gagal terhubung ke server geocoding.");
+    }
+  }
+
+  // 2. Cari berdasarkan GPS HP
+  function useGPS() {
+    if (navigator.geolocation) {
+      document.getElementById('cityName').innerText = "Mendapatkan GPS...";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          getWeatherData(pos.coords.latitude, pos.coords.longitude, "Lokasi Saya (GPS)");
+        },
+        () => {
+          alert("Izin GPS ditolak. Menggunakan lokasi default (Jakarta).");
+          getWeatherData(-6.2088, 106.8456, "Jakarta, ID");
+        }
+      );
+    } else {
+      alert("Browser tidak mendukung GPS.");
+    }
+  }
+
+  // 3. Fetch Data Cuaca & AQI dari Open-Meteo
+  async function getWeatherData(lat, lon, locationLabel) {
+    try {
+      // Fetch Cuaca
+      const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`);
+      const weatherData = await weatherRes.json();
+
+      // Fetch AQI
+      const aqiRes = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`);
+      const aqiData = await aqiRes.json();
+
+      renderUI(locationLabel, weatherData, aqiData);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal memuat data cuaca.");
+    }
+  }
+
+  // 4. Render ke Tampilan
+  function renderUI(city, weather, aqi) {
+    // Current Weather
+    document.getElementById('cityName').innerText = city;
+    document.getElementById('tempVal').innerText = `${Math.round(weather.current.temperature_2m)}°C`;
+    document.getElementById('weatherCond').innerText = weatherCodes[weather.current.weather_code] || "Cuaca Normal";
+    document.getElementById('humidityVal').innerText = `${weather.current.relative_humidity_2m}%`;
+    document.getElementById('windVal').innerText = `${Math.round(weather.current.wind_speed_10m)} km/j`;
+
+    // AQI Logic
+    const aqiValue = aqi.current ? aqi.current.us_aqi : 30;
+    const aqiBox = document.getElementById('aqiCard');
+    const aqiValEl = document.getElementById('aqiVal');
+    const aqiStatusEl = document.getElementById('aqiStatus');
+
+    aqiValEl.innerText = aqiValue;
+
+    if (aqiValue <= 50) {
+      aqiBox.style.borderLeftColor = "#4caf50";
+      aqiStatusEl.innerText = "Baik / Udara Bersih";
+      aqiStatusEl.style.background = "#1b5e20";
+      aqiStatusEl.style.color = "#81c784";
+    } else if (aqiValue <= 100) {
+      aqiBox.style.borderLeftColor = "#ffca28";
+      aqiStatusEl.innerText = "Sedang / Moderat";
+      aqiStatusEl.style.background = "#f57f17";
+      aqiStatusEl.style.color = "#fff";
+    } else {
+      aqiBox.style.borderLeftColor = "#f44336";
+      aqiStatusEl.innerText = "Tidak Sehat";
+      aqiStatusEl.style.background = "#b71c1c";
+      aqiStatusEl.style.color = "#ff8a80";
+    }
+
+    // Render 5 Days Forecast
+    const forecastList = document.getElementById('forecastList');
+    forecastList.innerHTML = '';
+    
+    for (let i = 0; i < 5; i++) {
+      const dateStr = new Date(weather.daily.time[i]).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' });
+      const minTemp = Math.round(weather.daily.temperature_2m_min[i]);
+      const maxTemp = Math.round(weather.daily.temperature_2m_max[i]);
+      const code = weather.daily.weather_code[i];
+
+      forecastList.innerHTML += `
+        <div class="forecast-item">
+          <div><strong>${dateStr}</strong><br><span style="color:#a0a0a0; font-size:0.75rem;">${weatherCodes[code] || 'Cuaca Normal'}</span></div>
+          <div><span style="color:#4db6ac">${maxTemp}°C</span> / <span style="color:#b0bec5">${minTemp}°C</span></div>
+        </div>
+      `;
+    }
+  }
+
+  // Load Awal: Otomatis Jakarta
+  getWeatherData(-6.2088, 106.8456, "Jakarta, ID");
+</script>
+
+</body>
+</html>

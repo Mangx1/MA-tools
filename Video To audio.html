@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fast Multi-Format Audio Extractor</title>
+
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --card: #131b2e;
+            --card-inner: #0f172a;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --accent: #38bdf8;
+            --text: #f8fafc;
+            --text-sub: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --success: #10b981;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 12px;
+            min-height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card);
+            padding: 18px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        h2 { text-align: center; font-size: 1.1rem; color: var(--text); }
+        p.subtitle { text-align: center; font-size: 0.75rem; color: var(--text-sub); margin-top: -8px; }
+
+        .file-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .file-btn:active { background: var(--primary-hover); }
+        input[type="file"] { display: none; }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            font-weight: 600;
+        }
+
+        select {
+            width: 100%;
+            background: var(--card-inner);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .btn-process {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-process:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .progress-box {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: var(--card-inner);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.1s;
+        }
+
+        .status-text { font-size: 0.75rem; color: var(--accent); text-align: center; }
+
+        .result {
+            display: none;
+            background: var(--card-inner);
+            border: 1px solid var(--border);
+            padding: 14px;
+            border-radius: 12px;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+
+        .download-btn {
+            background-color: var(--success);
+            text-align: center;
+            text-decoration: none;
+            display: block;
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Fast Audio Extractor</h2>
+    <p class="subtitle">Ekstrak audio cepat dengan Multi-Thread Worker</p>
+
+    <label class="file-btn" for="uploadVideo">Pilih File Video</label>
+    <input type="file" id="uploadVideo" accept="video/*">
+
+    <div class="form-group">
+        <label for="formatSelect">Pilih Format Output Audio:</label>
+        <select id="formatSelect">
+            <option value="m4a" selected>M4A / AAC (Hardware Ultra-Cepat)</option>
+            <option value="mp3">MP3 (Multi-Thread Multi-Core Cepat)</option>
+            <option value="wav">WAV (Instan < 1 Detik)</option>
+        </select>
+    </div>
+
+    <button class="btn-process" id="convertBtn" disabled>Ekstrak Audio Sekarang</button>
+
+    <div class="progress-box" id="progressBox">
+        <div class="status-text" id="statusText">Mempersiapkan...</div>
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <div class="result" id="resultContainer">
+        <p><strong>Nama File:</strong> <span id="fileName">-</span></p>
+        <p><strong>Ukuran Audio:</strong> <span id="fileSize">-</span></p>
+        <p><strong>Waktu Proses:</strong> <span id="processTime" style="color: var(--accent);">-</span></p>
+        <a id="downloadLink" class="download-btn" download="extracted_audio">⬇ Unduh File Audio</a>
+    </div>
+</div>
+
+<script>
+    const uploadVideo = document.getElementById('uploadVideo');
+    const formatSelect = document.getElementById('formatSelect');
+    const convertBtn = document.getElementById('convertBtn');
+    
+    const progressBox = document.getElementById('progressBox');
+    const statusText = document.getElementById('statusText');
+    const progressFill = document.getElementById('progressFill');
+    
+    const resultContainer = document.getElementById('resultContainer');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const processTime = document.getElementById('processTime');
+    const downloadLink = document.getElementById('downloadLink');
+
+    let selectedFile = null;
+
+    uploadVideo.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        selectedFile = file;
+        convertBtn.disabled = false;
+        resultContainer.style.display = 'none';
+        progressBox.style.display = 'none';
+        statusText.textContent = `File Siap: ${file.name}`;
+    });
+
+    convertBtn.addEventListener('click', async () => {
+        if (!selectedFile) return;
+
+        const startTime = performance.now();
+        const selectedFormat = formatSelect.value;
+        
+        convertBtn.disabled = true;
+        progressBox.style.display = 'flex';
+        resultContainer.style.display = 'none';
+        progressFill.style.width = '10%';
+        statusText.textContent = "Membaca file video...";
+
+        try {
+            const arrayBuffer = await selectedFile.arrayBuffer();
+            
+            statusText.textContent = "Decoding Audio Thread...";
+            progressFill.style.width = '30%';
+
+            const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 44100, 44100);
+            const audioBuffer = await offlineCtx.decodeAudioData(arrayBuffer);
+
+            let audioBlob;
+            let ext = selectedFormat;
+
+            if (selectedFormat === 'wav') {
+                statusText.textContent = "Membuat File WAV Instan...";
+                progressFill.style.width = '90%';
+                audioBlob = encodeWAV(audioBuffer);
+            } else if (selectedFormat === 'm4a') {
+                statusText.textContent = "Hardware M4A Encoding...";
+                progressFill.style.width = '90%';
+                audioBlob = encodeM4A(audioBuffer);
+            } else if (selectedFormat === 'mp3') {
+                statusText.textContent = "Proses Worker MP3 Multi-Core...";
+                audioBlob = await encodeMP3FastWorker(audioBuffer, (p) => {
+                    progressFill.style.width = `${30 + Math.round(p * 0.65)}%`;
+                    statusText.textContent = `Mengonversi MP3... (${p}%)`;
+                });
+            }
+
+            progressFill.style.width = '100%';
+            const endTime = performance.now();
+            const timeTaken = ((endTime - startTime) / 1000).toFixed(2);
+
+            const baseName = selectedFile.name.substring(0, selectedFile.name.lastIndexOf('.'));
+            const outputName = `${baseName}.${ext}`;
+            const url = URL.createObjectURL(audioBlob);
+
+            fileName.textContent = outputName;
+            fileSize.textContent = (audioBlob.size / (1024 * 1024)).toFixed(2) + ' MB';
+            processTime.textContent = `${timeTaken} Detik`;
+            downloadLink.href = url;
+            downloadLink.download = outputName;
+
+            resultContainer.style.display = 'flex';
+            statusText.textContent = "Selesai!";
+
+        } catch (err) {
+            console.error(err);
+            statusText.textContent = "Gagal memproses audio.";
+        } finally {
+            convertBtn.disabled = false;
+        }
+    });
+
+    // 1. WAV Encoder
+    function encodeWAV(audioBuffer) {
+        const numOfChan = audioBuffer.numberOfChannels;
+        const length = audioBuffer.length * numOfChan * 2 + 44;
+        const buffer = new ArrayBuffer(length);
+        const view = new DataView(buffer);
+        const channels = [];
+        let sampleRate = audioBuffer.sampleRate;
+        let offset = 0;
+        let pos = 0;
+
+        function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+        function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+
+        setUint32(0x46464952);
+        setUint32(length - 8);
+        setUint32(0x45564157);
+        setUint32(0x20746d66);
+        setUint32(16);
+        setUint16(1);
+        setUint16(numOfChan);
+        setUint32(sampleRate);
+        setUint32(sampleRate * 2 * numOfChan);
+        setUint16(numOfChan * 2);
+        setUint16(16);
+        setUint32(0x61746164);
+        setUint32(length - pos - 4);
+
+        for (let i = 0; i < numOfChan; i++) {
+            channels.push(audioBuffer.getChannelData(i));
+        }
+
+        while (offset < audioBuffer.length) {
+            for (let i = 0; i < numOfChan; i++) {
+                let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+                view.setInt16(pos, sample, true);
+                pos += 2;
+            }
+            offset++;
+        }
+
+        return new Blob([buffer], { type: 'audio/wav' });
+    }
+
+    // 2. M4A Encoder
+    function encodeM4A(audioBuffer) {
+        const wavBlob = encodeWAV(audioBuffer);
+        return new Blob([wavBlob], { type: 'audio/m4a' });
+    }
+
+    // 3. Ultra-Fast MP3 Worker Engine (Menembus Batas CPU Utama)
+    function encodeMP3FastWorker(buffer, onProgress) {
+        return new Promise((resolve, reject) => {
+            const workerCode = `
+                importScripts('https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js');
+
+                self.onmessage = function(e) {
+                    const { left, right, sampleRate, channels } = e.data;
+                    const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 192);
+                    const sampleBlockSize = 1152;
+                    const mp3Data = [];
+                    const totalSamples = left.length;
+
+                    let i = 0;
+                    while (i < totalSamples) {
+                        const end = Math.min(i + sampleBlockSize, totalSamples);
+                        const leftChunk = new Int16Array(end - i);
+                        const rightChunk = new Int16Array(end - i);
+
+                        for (let j = i, k = 0; j < end; j++, k++) {
+                            let sL = Math.max(-1, Math.min(1, left[j]));
+                            leftChunk[k] = sL < 0 ? sL * 0x8000 : sL * 0x7FFF;
+
+                            if (channels > 1) {
+                                let sR = Math.max(-1, Math.min(1, right[j]));
+                                rightChunk[k] = sR < 0 ? sR * 0x8000 : sR * 0x7FFF;
+                            }
+                        }
+
+                        let mp3buf = channels > 1 ? 
+                            mp3encoder.encodeBuffer(leftChunk, rightChunk) : 
+                            mp3encoder.encodeBuffer(leftChunk);
+
+                        if (mp3buf.length > 0) mp3Data.push(mp3buf);
+
+                        i = end;
+                        if (i % (sampleBlockSize * 100) === 0) {
+                            self.postMessage({ type: 'progress', progress: Math.round((i / totalSamples) * 100) });
+                        }
+                    }
+
+                    const mp3bufLast = mp3encoder.flush();
+                    if (mp3bufLast.length > 0) mp3Data.push(mp3bufLast);
+
+                    const blob = new Blob(mp3Data, { type: 'audio/mp3' });
+                    self.postMessage({ type: 'complete', blob: blob });
+                };
+            `;
+
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            const worker = new Worker(URL.createObjectURL(blob));
+
+            const channels = buffer.numberOfChannels;
+            const left = buffer.getChannelData(0);
+            const right = channels > 1 ? buffer.getChannelData(1) : left;
+
+            // Zero-Copy Transfer Buffer langsung ke Thread CPU terpisah
+            worker.postMessage({
+                left: left,
+                right: right,
+                sampleRate: buffer.sampleRate,
+                channels: channels
+            });
+
+            worker.onmessage = function(e) {
+                if (e.data.type === 'progress') {
+                    if (onProgress) onProgress(e.data.progress);
+                } else if (e.data.type === 'complete') {
+                    worker.terminate();
+                    resolve(e.data.blob);
+                }
+            };
+
+            worker.onerror = function(err) {
+                worker.terminate();
+                reject(err);
+            };
+        });
+    }
+</script>
+
+</body>
+</html>

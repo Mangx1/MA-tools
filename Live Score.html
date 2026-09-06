@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jadwal Olahraga & Notifikasi WIB</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #12181b; color: #f0f0f0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 500px; }
+    
+    /* Header & Clock */
+    .app-header { text-align: center; margin-bottom: 12px; }
+    .app-header h2 { color: #4db6ac; font-size: 1.4rem; }
+    .app-header p { font-size: 0.8rem; color: #a0a0a0; margin-top: 2px; }
+    .clock-wib { font-family: monospace; color: #ffca28; font-size: 0.9rem; font-weight: bold; margin-top: 4px; }
+
+    /* Horizontal Scrollable Tabs */
+    .league-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+      scrollbar-width: none;
+    }
+    .league-tabs::-webkit-scrollbar { display: none; }
+    
+    .tab-btn {
+      background: #1e272c;
+      color: #b0bec5;
+      border: 1px solid #37474f;
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .tab-btn.active {
+      background: #4db6ac;
+      color: #12181b;
+      border-color: #4db6ac;
+    }
+
+    /* Date Filter Bar (Scrollable) */
+    .date-filter-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      margin-bottom: 12px;
+      scrollbar-width: none;
+    }
+    .date-filter-tabs::-webkit-scrollbar { display: none; }
+
+    .date-btn {
+      flex: 0 0 auto;
+      background: #182226;
+      color: #a0a0a0;
+      border: 1px solid #37474f;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+      transition: 0.2s;
+    }
+    .date-btn.active {
+      background: #263238;
+      color: #ffca28;
+      border-color: #ffca28;
+    }
+
+    /* Refresh Bar */
+    .refresh-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .league-title { font-size: 0.95rem; font-weight: bold; color: #fff; }
+    .btn-refresh {
+      background: #263238;
+      color: #4db6ac;
+      border: 1px solid #4db6ac;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .status-msg { text-align: center; padding: 20px; color: #ffca28; font-size: 0.85rem; }
+
+    /* Match Card */
+    .match-card {
+      background: #1e272c;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-left: 4px solid #37474f;
+      position: relative;
+    }
+    .match-card.live { border-left-color: #ff5252; }
+    .match-card.post { border-left-color: #4db6ac; }
+    
+    .match-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: #a0a0a0;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #263238;
+      padding-bottom: 6px;
+    }
+    .badge-status { font-weight: bold; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
+    .badge-live { background: #d32f2f; color: #fff; animation: blink 1.2s infinite; }
+    .badge-post { background: #004d40; color: #80cbc4; }
+    .badge-pre { background: #263238; color: #ffca28; }
+
+    /* Bell Button */
+    .btn-bell {
+      background: none;
+      border: none;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: transform 0.2s;
+    }
+    .btn-bell:active { transform: scale(1.3); }
+    .btn-bell.active { color: #ffca28; filter: drop-shadow(0 0 4px #ffca28); }
+
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    .match-body {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .team { display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .team-logo { width: 42px; height: 42px; object-fit: contain; margin-bottom: 6px; }
+    .team-name { font-size: 0.85rem; font-weight: 600; color: #f0f0f0; line-height: 1.1; }
+    
+    .score-box { text-align: center; min-width: 70px; }
+    .score-num { font-size: 1.4rem; font-weight: bold; color: #ffca28; font-family: monospace; }
+    .time-wib-display { font-size: 0.8rem; font-weight: bold; color: #4db6ac; }
+    .vs-text { font-size: 0.8rem; color: #78909c; font-weight: bold; }
+    .click-hint { text-align: center; font-size: 0.7rem; color: #4db6ac; margin-top: 8px; font-weight: 500; }
+
+    /* BANNER NOTIFIKASI FLOATING */
+    .notif-banner {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      right: 15px;
+      background: #d32f2f;
+      color: #fff;
+      padding: 12px 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 2000;
+      animation: bounceIn 0.4s ease;
+    }
+    @keyframes bounceIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* MODAL DETAIL PERTANDINGAN */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      justify-content: center;
+      align-items: flex-end;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #182226;
+      width: 100%;
+      max-width: 500px;
+      height: 90vh;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideUp 0.25s ease-out;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    .modal-header {
+      background: #1e272c;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #263238;
+    }
+    .modal-title { font-size: 1rem; font-weight: bold; color: #ffca28; }
+    .btn-close { background: none; border: none; color: #a0a0a0; font-size: 1.4rem; cursor: pointer; }
+
+    .modal-score-summary {
+      background: #1e272c;
+      padding: 15px;
+      text-align: center;
+      border-bottom: 1px solid #263238;
+    }
+
+    .modal-tabs {
+      display: flex;
+      background: #12181b;
+      border-bottom: 1px solid #263238;
+    }
+    .modal-tab-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: transparent;
+      color: #a0a0a0;
+      font-weight: bold;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .modal-tab-btn.active { color: #4db6ac; border-bottom: 2px solid #4db6ac; }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+    }
+
+    /* Timeline & Stats Styles */
+    .timeline-item { display: flex; align-items: center; margin-bottom: 12px; font-size: 0.8rem; }
+    .timeline-time { background: #263238; color: #ffca28; padding: 4px 8px; border-radius: 12px; font-weight: bold; font-size: 0.75rem; min-width: 45px; text-align: center; margin: 0 10px; }
+    .timeline-left { flex: 1; text-align: right; }
+    .timeline-right { flex: 1; text-align: left; }
+    .icon-event { font-size: 0.9rem; margin: 0 4px; }
+
+    .stat-row { margin-bottom: 12px; }
+    .stat-label { display: flex; justify-content: space-between; font-size: 0.8rem; color: #cfd8dc; margin-bottom: 4px; }
+    .stat-bar-container { display: flex; height: 6px; background: #263238; border-radius: 3px; overflow: hidden; }
+    .stat-bar-left { background: #4db6ac; height: 100%; }
+    .stat-bar-right { background: #ffca28; height: 100%; }
+  </style>
+</head>
+<body>
+
+<!-- BANNER NOTIFIKASI PERTANDINGAN -->
+<div class="notif-banner" id="notifBanner">
+  <div>
+    <div style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">🚨 Pengingat Pertandingan</div>
+    <div id="notifMatchName" style="font-weight: bold; font-size: 0.9rem; margin-top: 2px;">-</div>
+  </div>
+  <button onclick="dismissBanner()" style="background:none; border:none; color:#fff; font-size:1.2rem; cursor:pointer;">✕</button>
+</div>
+
+<div class="container">
+  <div class="app-header">
+    <h2>Jadwal & Skor Olahraga</h2>
+    <p>Waktu Indonesia Barat (WIB)</p>
+    <div class="clock-wib" id="liveClockWIB">--:--:-- WIB</div>
+  </div>
+
+  <!-- Tab Pilihan Olahraga Lengkap -->
+  <div class="league-tabs">
+    <button class="tab-btn active" onclick="switchLeague('eng.1', 'Premier League 🇬🇧', 'soccer')">Premier League</button>
+    <button class="tab-btn" onclick="switchLeague('uefa.champions', 'Champions League 🇪🇺', 'soccer')">UCL</button>
+    <button class="tab-btn" onclick="switchLeague('esp.1', 'La Liga 🇪🇸', 'soccer')">La Liga</button>
+    <button class="tab-btn" onclick="switchLeague('ita.1', 'Serie A 🇮🇹', 'soccer')">Serie A</button>
+    <button class="tab-btn" onclick="switchLeague('ufc', 'UFC / MMA 🥊', 'mma')">UFC 🥊</button>
+    <button class="tab-btn" onclick="switchLeague('nba', 'NBA Basketball 🇺🇸', 'basketball')">NBA</button>
+    <button class="tab-btn" onclick="switchLeague('f1', 'Formula 1 🏎️', 'racing')">F1 Racing</button>
+    <button class="tab-btn" onclick="switchLeague('motogp', 'MotoGP 🏍️', 'custom_motogp')">MotoGP 🏍️</button>
+    <button class="tab-btn" onclick="switchLeague('wrc', 'WRC Rally 🚗', 'custom_wrc')">WRC 🚗</button>
+    <button class="tab-btn" onclick="switchLeague('volleyball', 'Bola Voli 🏐', 'volleyball')">Voli 🏐</button>
+  </div>
+
+  <!-- Filter Rentang Tanggal Pertandingan Lengkap -->
+  <div class="date-filter-tabs">
+    <button class="date-btn" onclick="setDateFilter('yesterday')">📅 Kemarin</button>
+    <button class="date-btn" onclick="setDateFilter('today')">📅 Hari Ini</button>
+    <button class="date-btn active" onclick="setDateFilter('7days')">📅 7 Hari Ke Depan</button>
+    <button class="date-btn" onclick="setDateFilter('14days')">📅 14 Hari Ke Depan</button>
+  </div>
+
+  <div class="refresh-bar">
+    <div class="league-title" id="currentLeagueTitle">Premier League 🇬🇧</div>
+    <button class="btn-refresh" onclick="loadSportsSchedule()">🔄 Refresh</button>
+  </div>
+
+  <!-- Container Match List -->
+  <div id="matchContainer">
+    <div class="status-msg">Memuat jadwal pertandingan...</div>
+  </div>
+</div>
+
+<!-- MODAL DETAIL PERTANDINGAN -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="modal-title" id="modalLeagueName">Detail Pertandingan</span>
+      <button class="btn-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-score-summary" id="modalScoreSummary">
+      <!-- Diisi JS -->
+    </div>
+
+    <div class="modal-tabs">
+      <button class="modal-tab-btn active" onclick="switchModalTab('events')">Timeline (Gol & Kartu)</button>
+      <button class="modal-tab-btn" onclick="switchModalTab('stats')">Statistik</button>
+    </div>
+
+    <div class="modal-body" id="modalBody">
+      <div class="status-msg">Memuat detail pertandingan...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentLeagueCode = 'eng.1';
+  let currentLeagueName = 'Premier League 🇬🇧';
+  let currentSportCategory = 'soccer';
+  let currentDateRange = '7days'; // Default rentang 7 hari ke depan
+  let cachedMatchSummary = null;
+
+  const DEFAULT_LOGO = 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/default-team-logo.png';
+
+  // --- HELPER FORMAT TANGGAL UNTUK API ESPN ---
+  function getYYYYMMDD(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    return `${y}${m}${d}`;
+  }
+
+  function getDateParam() {
+    const now = new Date();
+    
+    // 1. KEMARIN
+    if (currentDateRange === 'yesterday') {
+      const yesterday = new Date();
+      yesterday.setDate(now.getDate() - 1);
+      return getYYYYMMDD(yesterday);
+    }
+    
+    // 2. HARI INI
+    if (currentDateRange === 'today') {
+      return getYYYYMMDD(now);
+    }
+    
+    // 3. 7 HARI KE DEPAN
+    const startStr = getYYYYMMDD(now);
+    const future = new Date();
+    
+    if (currentDateRange === '14days') {
+      future.setDate(now.getDate() + 14); // 4. 14 HARI KE DEPAN
+    } else {
+      future.setDate(now.getDate() + 7);
+    }
+    const endStr = getYYYYMMDD(future);
+    return `${startStr}-${endStr}`;
+  }
+
+  function setDateFilter(range) {
+    currentDateRange = range;
+    document.querySelectorAll('.date-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    loadSportsSchedule();
+  }
+
+  // --- SISTEM PENGINGAT (REMINDER / LONCENG) ---
+  let bookmarkedEvents = JSON.parse(localStorage.getItem('sports_bookmarks') || '[]');
+
+  function saveBookmarks() {
+    localStorage.setItem('sports_bookmarks', JSON.stringify(bookmarkedEvents));
+  }
+
+  function isBookmarked(eventId) {
+    return bookmarkedEvents.some(b => b.id === eventId);
+  }
+
+  function toggleBookmark(eventId, eventTitle, isoDate, eventObj) {
+    if (eventObj) eventObj.stopPropagation();
+
+    const idx = bookmarkedEvents.findIndex(b => b.id === eventId);
+    if (idx >= 0) {
+      bookmarkedEvents.splice(idx, 1);
+      alert(`Pengingat untuk "${eventTitle}" DIBATALKAN.`);
+    } else {
+      bookmarkedEvents.push({
+        id: eventId,
+        title: eventTitle,
+        startTime: new Date(isoDate).getTime(),
+        notified: false
+      });
+      alert(`🔔 Pengingat diaktifkan untuk "${eventTitle}". Kamu akan diberi notifikasi saat pertandingan dimulai!`);
+      
+      if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+      }
+    }
+
+    saveBookmarks();
+    loadSportsSchedule();
+  }
+
+  setInterval(checkReminders, 10000);
+
+  function checkReminders() {
+    const now = new Date().getTime();
+    bookmarkedEvents.forEach(b => {
+      if (!b.notified && now >= (b.startTime - 60000)) {
+        triggerNotification(b.title);
+        b.notified = true;
+        saveBookmarks();
+      }
+    });
+  }
+
+  function triggerNotification(matchTitle) {
+    playBeepSound();
+
+    if (navigator.vibrate) {
+      navigator.vibrate([300, 150, 300, 150, 400]);
+    }
+
+    document.getElementById('notifMatchName').innerText = matchTitle + " DIMULAI!";
+    document.getElementById('notifBanner').style.display = 'flex';
+
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("🚨 Pertandingan Dimulai!", {
+        body: matchTitle,
+        icon: DEFAULT_LOGO
+      });
+    }
+  }
+
+  function playBeepSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.6);
+    } catch(e) {}
+  }
+
+  function dismissBanner() {
+    document.getElementById('notifBanner').style.display = 'none';
+  }
+
+  // --- LOGO HELPER ---
+  function getTeamLogo(teamObj) {
+    if (!teamObj) return DEFAULT_LOGO;
+    if (teamObj.logo && typeof teamObj.logo === 'string') return teamObj.logo;
+    if (teamObj.logos && teamObj.logos.length > 0 && teamObj.logos[0].href) return teamObj.logos[0].href;
+    return DEFAULT_LOGO;
+  }
+
+  // Jam Realtime WIB
+  function updateWIBClock() {
+    const now = new Date();
+    const options = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+    document.getElementById('liveClockWIB').innerText = now.toLocaleTimeString('id-ID', options) + ' WIB';
+  }
+  setInterval(updateWIBClock, 1000);
+  updateWIBClock();
+
+  function switchLeague(code, name, category) {
+    currentLeagueCode = code;
+    currentLeagueName = name;
+    currentSportCategory = category;
+    
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    document.getElementById('currentLeagueTitle').innerText = name;
+    loadSportsSchedule();
+  }
+
+  function formatWIBDate(isoString) {
+    const d = new Date(isoString);
+    const dateOptions = { timeZone: 'Asia/Jakarta', weekday: 'short', day: 'numeric', month: 'short' };
+    const timeOptions = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' };
+    return { 
+      dateStr: d.toLocaleDateString('id-ID', dateOptions), 
+      timeStr: d.toLocaleTimeString('id-ID', timeOptions) + ' WIB' 
+    };
+  }
+
+  // Fetch Scoreboard API Utama
+  async function loadSportsSchedule() {
+    const container = document.getElementById('matchContainer');
+    container.innerHTML = '<div class="status-msg">Memuat data terkini...</div>';
+
+    if (currentSportCategory === 'custom_motogp') {
+      renderCustomRacingCard('MotoGP World Championship 🏍️', [
+        { id: 'motogp-1', name: 'San Marino GP (Misano)', date: '2026-09-13T12:00:00Z', status: 'MENDATANG' },
+        { id: 'motogp-2', name: 'Emilia Romagna GP', date: '2026-09-20T12:00:00Z', status: 'MENDATANG' },
+        { id: 'motogp-3', name: 'Indonesian GP (Mandalika 🇮🇩)', date: '2026-09-27T07:00:00Z', status: 'MENDATANG' }
+      ]);
+      return;
+    }
+
+    if (currentSportCategory === 'custom_wrc') {
+      renderCustomRacingCard('WRC World Rally Championship 🚗', [
+        { id: 'wrc-1', name: 'Rally Greece (Acropolis)', date: '2026-09-10T08:00:00Z', status: 'MENDATANG' },
+        { id: 'wrc-2', name: 'Rally Chile', date: '2026-09-24T08:00:00Z', status: 'MENDATANG' }
+      ]);
+      return;
+    }
+
+    const dateParam = getDateParam();
+    let endpoint = '';
+
+    if (currentSportCategory === 'soccer') {
+      endpoint = `https://site.api.espn.com/apis/site/v2/sports/soccer/${currentLeagueCode}/scoreboard?dates=${dateParam}`;
+    } else if (currentSportCategory === 'mma') {
+      endpoint = `https://site.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard?dates=${dateParam}`;
+    } else if (currentSportCategory === 'basketball') {
+      endpoint = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${dateParam}`;
+    } else if (currentSportCategory === 'racing') {
+      endpoint = `https://site.api.espn.com/apis/site/v2/sports/racing/${currentLeagueCode}/scoreboard?dates=${dateParam}`;
+    } else if (currentSportCategory === 'volleyball') {
+      endpoint = `https://site.api.espn.com/apis/site/v2/sports/volleyball/mens-college-volleyball/scoreboard?dates=${dateParam}`;
+    }
+
+    try {
+      const res = await fetch(endpoint);
+      if (!res.ok) throw new Error("Gagal memuat API");
+      
+      const data = await res.json();
+      const events = data.events || [];
+
+      if (events.length === 0) {
+        container.innerHTML = '<div class="status-msg">Tidak ada jadwal pertandingan aktif pada rentang waktu ini.</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      
+      events.forEach(event => {
+        const statusType = event.status.type.state;
+        const statusDetail = event.status.type.shortDetail || '';
+        const { dateStr, timeStr } = formatWIBDate(event.date);
+        const marked = isBookmarked(event.id);
+        const bellIcon = marked ? '🔔' : '🔕';
+        const bellClass = marked ? 'active' : '';
+
+        // UFC / MMA
+        if (currentSportCategory === 'mma') {
+          container.innerHTML += renderUFCCard(event, statusType, statusDetail, dateStr, timeStr, marked, bellIcon, bellClass);
+          return;
+        }
+
+        // F1
+        if (currentSportCategory === 'racing') {
+          container.innerHTML += renderRacingCard(event, statusType, statusDetail, dateStr, timeStr, marked, bellIcon, bellClass);
+          return;
+        }
+
+        // Sepak Bola, NBA, Voli
+        const comp = event.competitions[0];
+        const homeTeam = comp.competitors.find(c => c.homeAway === 'home') || comp.competitors[0];
+        const awayTeam = comp.competitors.find(c => c.homeAway === 'away') || comp.competitors[1];
+
+        let statusBadge = '';
+        let cardClass = '';
+
+        if (statusType === 'in') {
+          statusBadge = `<span class="badge-status badge-live">LIVE • ${statusDetail}</span>`;
+          cardClass = 'live';
+        } else if (statusType === 'post') {
+          statusBadge = `<span class="badge-status badge-post">SELESAI (${statusDetail})</span>`;
+          cardClass = 'post';
+        } else {
+          statusBadge = `<span class="badge-status badge-pre">MENDATANG</span>`;
+        }
+
+        const scoreHTML = (statusType === 'in' || statusType === 'post') 
+          ? `<div class="score-num">${homeTeam.score} - ${awayTeam.score}</div>`
+          : `<div class="time-wib-display">${timeStr}</div><div class="vs-text">VS</div>`;
+
+        const isSoccer = currentSportCategory === 'soccer';
+        const clickHint = isSoccer ? '<div class="click-hint">📊 Klik untuk Detail & Timeline</div>' : '';
+
+        const homeLogo = getTeamLogo(homeTeam.team);
+        const awayLogo = getTeamLogo(awayTeam.team);
+        const matchTitle = `${homeTeam.team.name} vs ${awayTeam.team.name}`;
+
+        container.innerHTML += `
+          <div class="match-card ${cardClass}">
+            <div class="match-header">
+              <span>📅 ${dateStr}</span>
+              <div>
+                ${statusBadge}
+                <button class="btn-bell ${bellClass}" onclick="toggleBookmark('${event.id}', '${matchTitle}', '${event.date}', event)">${bellIcon}</button>
+              </div>
+            </div>
+            <div class="match-body" ${isSoccer ? `onclick="openMatchDetail('${event.id}')"` : ''}>
+              <div class="team">
+                <img class="team-logo" src="${homeLogo}" onerror="this.onerror=null; this.src='${DEFAULT_LOGO}';" alt="logo">
+                <span class="team-name">${homeTeam.team.shortDisplayName || homeTeam.team.name}</span>
+              </div>
+              <div class="score-box">
+                ${scoreHTML}
+              </div>
+              <div class="team">
+                <img class="team-logo" src="${awayLogo}" onerror="this.onerror=null; this.src='${DEFAULT_LOGO}';" alt="logo">
+                <span class="team-name">${awayTeam.team.shortDisplayName || awayTeam.team.name}</span>
+              </div>
+            </div>
+            ${clickHint}
+          </div>
+        `;
+      });
+
+    } catch (err) {
+      console.error(err);
+      container.innerHTML = '<div class="status-msg" style="color:#ff5252;">Gagal memuat data. Pastikan terhubung ke internet.</div>';
+    }
+  }
+
+  function renderUFCCard(event, statusType, statusDetail, dateStr, timeStr, marked, bellIcon, bellClass) {
+    const comp = event.competitions[0];
+    const f1 = comp.competitors[0];
+    const f2 = comp.competitors[1];
+
+    const f1Name = f1?.athlete?.displayName || f1?.athlete?.fullName || 'Fighter 1';
+    const f2Name = f2?.athlete?.displayName || f2?.athlete?.fullName || 'Fighter 2';
+    const f1Img = f1?.athlete?.headshot?.href || DEFAULT_LOGO;
+    const f2Img = f2?.athlete?.headshot?.href || DEFAULT_LOGO;
+    const matchTitle = `UFC: ${f1Name} vs ${f2Name}`;
+
+    return `
+      <div class="match-card">
+        <div class="match-header">
+          <span>📅 ${dateStr} • ${timeStr}</span>
+          <div>
+            <span class="badge-status badge-pre">${event.name}</span>
+            <button class="btn-bell ${bellClass}" onclick="toggleBookmark('${event.id}', '${matchTitle}', '${event.date}', event)">${bellIcon}</button>
+          </div>
+        </div>
+        <div class="match-body">
+          <div class="team">
+            <img class="team-logo" src="${f1Img}" onerror="this.onerror=null; this.src='${DEFAULT_LOGO}';" style="border-radius:50%;">
+            <span class="team-name">${f1Name}</span>
+          </div>
+          <div class="score-box">
+            <div class="vs-text" style="color:#ff5252; font-size:1.1rem;">VS</div>
+          </div>
+          <div class="team">
+            <img class="team-logo" src="${f2Img}" onerror="this.onerror=null; this.src='${DEFAULT_LOGO}';" style="border-radius:50%;">
+            <span class="team-name">${f2Name}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderRacingCard(event, statusType, statusDetail, dateStr, timeStr, marked, bellIcon, bellClass) {
+    return `
+      <div class="match-card">
+        <div class="match-header">
+          <span>📅 ${dateStr} • ${timeStr}</span>
+          <div>
+            <span class="badge-status badge-pre">JADWAL BALAPAN</span>
+            <button class="btn-bell ${bellClass}" onclick="toggleBookmark('${event.id}', '${event.name}', '${event.date}', event)">${bellIcon}</button>
+          </div>
+        </div>
+        <div style="text-align: center; padding: 10px 0;">
+          <h4 style="color:#4db6ac; font-size:1rem; margin-bottom:4px;">🏁 ${event.name}</h4>
+          <p style="font-size:0.8rem; color:#b0bec5;">${event.circuit?.name || statusDetail}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderCustomRacingCard(title, list) {
+    const container = document.getElementById('matchContainer');
+    container.innerHTML = '';
+    list.forEach(item => {
+      const { dateStr, timeStr } = formatWIBDate(item.date);
+      const marked = isBookmarked(item.id);
+      const bellIcon = marked ? '🔔' : '🔕';
+      const bellClass = marked ? 'active' : '';
+
+      container.innerHTML += `
+        <div class="match-card">
+          <div class="match-header">
+            <span>📅 ${dateStr} • ${timeStr}</span>
+            <div>
+              <span class="badge-status badge-pre">${item.status}</span>
+              <button class="btn-bell ${bellClass}" onclick="toggleBookmark('${item.id}', '${item.name}', '${item.date}', event)">${bellIcon}</button>
+            </div>
+          </div>
+          <div style="text-align: center; padding: 10px 0;">
+            <h4 style="color:#ffca28; font-size:1rem; margin-bottom:4px;">${item.name}</h4>
+            <p style="font-size:0.8rem; color:#b0bec5;">${title}</p>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  // --- DETAIL & LIVE SCORE TIMELINE SEPAK BOLA ---
+  async function openMatchDetail(eventId) {
+    const modal = document.getElementById('detailModal');
+    const summaryBox = document.getElementById('modalScoreSummary');
+    const modalBody = document.getElementById('modalBody');
+    
+    modal.style.display = 'flex';
+    document.getElementById('modalLeagueName').innerText = currentLeagueName;
+    summaryBox.innerHTML = '<div style="color:#ffca28;">Memuat detail pertandingan...</div>';
+    modalBody.innerHTML = '';
+
+    try {
+      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${currentLeagueCode}/summary?event=${eventId}`);
+      const data = await res.json();
+      cachedMatchSummary = data;
+
+      const header = data.header.competitions[0];
+      const home = header.competitors.find(c => c.homeAway === 'home');
+      const away = header.competitors.find(c => c.homeAway === 'away');
+
+      const homeLogo = getTeamLogo(home.team);
+      const awayLogo = getTeamLogo(away.team);
+
+      summaryBox.innerHTML = `
+        <div style="font-size:0.75rem; color:#a0a0a0; margin-bottom:8px;">${header.status.type.detail || 'Full Time'}</div>
+        <div style="display:flex; justify-content:space-around; align-items:center;">
+          <div style="flex:1; text-align:center;">
+            <img src="${homeLogo}" onerror="this.onerror=null; this.src='${DEFAULT_LOGO}';" style="width:40px; height:40px; object-fit:contain;"><br>
+            <strong style="font-size:0.85rem; color:#fff;">${home.team.name}</strong>
+          </div>
+          <div style="font-size:1.8rem; font-weight:bold; color:#ffca28; font-family:monospace; padding:0 15px;">
+            ${home.score || 0} - ${away.score || 0}
+          </div>
+          <div style="flex:1; text-align:center;">
+            <img src="${awayLogo}" onerror="this.onerror=null; this.src='${DEFAULT_LOGO}';" style="width:40px; height:40px; object-fit:contain;"><br>
+            <strong style="font-size:0.85rem; color:#fff;">${away.team.name}</strong>
+          </div>
+        </div>
+      `;
+
+      renderModalEvents();
+
+    } catch (err) {
+      summaryBox.innerHTML = '<div style="color:#ff5252;">Gagal memuat detail pertandingan.</div>';
+    }
+  }
+
+  function renderModalEvents() {
+    const modalBody = document.getElementById('modalBody');
+    modalBody.innerHTML = '';
+
+    if (!cachedMatchSummary || !cachedMatchSummary.keyEvents || cachedMatchSummary.keyEvents.length === 0) {
+      modalBody.innerHTML = '<div class="status-msg">Belum ada kejadian/gol pada pertandingan ini.</div>';
+      return;
+    }
+
+    const homeTeamId = cachedMatchSummary.header.competitions[0].competitors.find(c => c.homeAway === 'home').id;
+
+    cachedMatchSummary.keyEvents.forEach(evt => {
+      const isHome = evt.team && evt.team.id === homeTeamId;
+      const clock = evt.clock ? evt.clock.displayValue : '';
+      let icon = '⚽';
+      let text = evt.text || '';
+
+      if (evt.type?.text?.includes('Card') || evt.type?.text?.includes('Yellow')) icon = '🟨';
+      if (evt.type?.text?.includes('Red Card')) icon = '🟥';
+      if (evt.type?.text?.includes('Substitution')) icon = '🔄';
+
+      modalBody.innerHTML += `
+        <div class="timeline-item">
+          <div class="timeline-left">${isHome ? `${text} <span class="icon-event">${icon}</span>` : ''}</div>
+          <div class="timeline-time">${clock}</div>
+          <div class="timeline-right">${!isHome ? `<span class="icon-event">${icon}</span> ${text}` : ''}</div>
+        </div>
+      `;
+    });
+  }
+
+  function renderModalStats() {
+    const modalBody = document.getElementById('modalBody');
+    modalBody.innerHTML = '';
+
+    if (!cachedMatchSummary || !cachedMatchSummary.boxscore || !cachedMatchSummary.boxscore.teams) {
+      modalBody.innerHTML = '<div class="status-msg">Statistik pertandingan belum tersedia.</div>';
+      return;
+    }
+
+    const homeStats = cachedMatchSummary.boxscore.teams[0]?.statistics || [];
+    const awayStats = cachedMatchSummary.boxscore.teams[1]?.statistics || [];
+
+    if (homeStats.length === 0) {
+      modalBody.innerHTML = '<div class="status-msg">Data statistik belum tersedia.</div>';
+      return;
+    }
+
+    homeStats.forEach((stat, idx) => {
+      const hVal = parseFloat(stat.displayValue) || 0;
+      const aVal = parseFloat(awayStats[idx]?.displayValue) || 0;
+      const total = (hVal + aVal) || 1;
+      const hPercent = Math.round((hVal / total) * 100);
+      const aPercent = 100 - hPercent;
+
+      modalBody.innerHTML += `
+        <div class="stat-row">
+          <div class="stat-label">
+            <span><strong>${stat.displayValue}</strong></span>
+            <span>${stat.label}</span>
+            <span><strong>${awayStats[idx]?.displayValue || 0}</strong></span>
+          </div>
+          <div class="stat-bar-container">
+            <div class="stat-bar-left" style="width: ${hPercent}%;"></div>
+            <div class="stat-bar-right" style="width: ${aPercent}%;"></div>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  function switchModalTab(tab) {
+    document.querySelectorAll('.modal-tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    if (tab === 'events') renderModalEvents();
+    if (tab === 'stats') renderModalStats();
+  }
+
+  function closeModal() {
+    document.getElementById('detailModal').style.display = 'none';
+  }
+
+  // Load Awal Premier League
+  loadSportsSchedule();
+</script>
+
+</body>
+</html>
