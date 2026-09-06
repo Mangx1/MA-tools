@@ -102,6 +102,13 @@
     #memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; height: 100%; padding: 12px; }
     button.mem-card { background: #12192c; border: 1.5px solid #00f3ff; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1.8rem; cursor: pointer; color: #fff; }
     button.mem-card.flipped { background: #ff007f; border-color: #ff007f; }
+  
+    /* Android safe-area: turunkan header agar tidak tertutup status bar */
+    .app-header {
+      padding-top: env(safe-area-inset-top, 0px);
+      height: calc(48px + env(safe-area-inset-top, 0px));
+    }
+    .screen { height: calc(100vh - 48px - env(safe-area-inset-top, 0px)); }
   </style>
 </head>
 <body>
