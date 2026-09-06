@@ -40,6 +40,11 @@
     .forecast-title { font-size: 0.9rem; color: #4db6ac; font-weight: bold; margin-bottom: 10px; }
     .forecast-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #263238; font-size: 0.85rem; }
     .forecast-item:last-child { border-bottom: none; }
+  
+    /* Android safe-area: beri ruang aman di atas agar judul tidak tertutup status bar */
+    body {
+      padding-top: max(15px, calc(env(safe-area-inset-top, 0px) + 15px));
+    }
   </style>
 </head>
 <body>
