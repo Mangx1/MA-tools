@@ -141,6 +141,11 @@
       margin-top: 6px;
       font-weight: 500;
     }
+  
+    /* Android safe-area: beri ruang aman di atas agar judul tidak tertutup status bar */
+    body {
+      padding-top: max(15px, calc(env(safe-area-inset-top, 0px) + 15px));
+    }
   </style>
 </head>
 <body>
