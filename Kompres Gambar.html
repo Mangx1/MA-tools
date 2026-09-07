@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bulk Compressor (Antrean Foto)</title>
+    <title>Bulk Media Compressor & Resizer Pro</title>
+
+    <!-- JSZip CDN untuk Download Arsip ZIP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
     <style>
         :root {
             --bg-color: #0f172a;
@@ -29,159 +32,152 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             min-height: 100vh;
-            padding: 16px;
+            padding: 7px;
             display: flex;
             justify-content: center;
         }
 
         .container {
             width: 100%;
-            max-width: 600px;
+            max-width: 680px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 7px;
+            /* Safe area Android: jangan biarkan header berada di bawah status bar */
+            padding-top: max(48px, env(safe-area-inset-top, 0px));
         }
 
         .header {
             text-align: center;
-            margin-top: 8px;
+            margin-top: 2px;
         }
 
         .header h1 {
-            font-size: 1.4rem;
-            margin-bottom: 4px;
+            font-size: 1.2rem;
+            margin-bottom: 2px;
         }
 
         .header p {
-            font-size: 0.85rem;
+            font-size: 0.78rem;
             color: var(--text-muted);
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent);
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 6px;
+            margin-top: 3px;
+            font-weight: 700;
         }
 
         .card {
             background-color: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 16px;
+            padding: 7px;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 9px;
         }
 
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            gap: 8px;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
         }
 
         label {
             font-size: 0.8rem;
             font-weight: 600;
             color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
         }
 
-        select, input[type="range"] {
+        select, input[type="number"], input[type="range"] {
             width: 100%;
-            padding: 10px;
+            padding: 7px;
             background-color: var(--bg-color);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 7px;
             color: var(--text-main);
-            font-size: 0.85rem;
+            font-size: 0.78rem;
             outline: none;
         }
 
-        .upload-area {
+        .drop-zone {
             border: 2px dashed var(--accent);
             border-radius: 10px;
-            padding: 20px;
+            padding: 14px;
             text-align: center;
             background: rgba(56, 189, 248, 0.03);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 7px;
+            transition: background 0.2s;
+        }
+
+        .drop-zone:hover {
+            background: rgba(56, 189, 248, 0.08);
+        }
+
+        .drop-zone p {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .btn-upload-group {
+            display: flex;
+            gap: 7px;
         }
 
         .btn-upload {
-            padding: 12px 20px;
+            padding: 6px 11px;
             background: var(--accent);
             color: #000;
             font-weight: 700;
-            border-radius: 8px;
-            font-size: 0.9rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
             cursor: pointer;
-            display: inline-block;
         }
 
-        /* INPUT SINGLE POLOS DENGAN SAKTI TERBUKTI TDK AKAN FC */
         input[type="file"] {
             display: none;
         }
 
-        .queue-card {
-            display: none;
-            flex-direction: column;
-            gap: 10px;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
-        }
-
-        .queue-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            max-height: 250px;
-            overflow-y: auto;
-        }
-
-        .queue-item {
-            background: var(--bg-color);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 8px 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.85rem;
-        }
-
-        .btn-del {
-            background: var(--danger);
-            color: #fff;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            cursor: pointer;
-        }
-
         .btn-group {
             display: flex;
-            gap: 10px;
+            gap: 7px;
         }
 
         .btn {
             flex: 1;
-            padding: 12px;
+            padding: 8px;
             border: none;
-            border-radius: 8px;
+            border-radius: 7px;
+            background-color: var(--accent);
+            color: #000;
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             cursor: pointer;
+            transition: background-color 0.2s;
             text-align: center;
         }
 
-        .btn-primary { background-color: var(--accent); color: #000; }
-        .btn-success { background-color: var(--success); color: #000; }
+        .btn:hover { background-color: var(--accent-hover); }
         .btn-danger { background-color: var(--danger); color: #fff; }
+        .btn-success { background-color: var(--success); color: #000; }
 
         .progress-bar-container {
             width: 100%;
@@ -205,10 +201,23 @@
             text-align: center;
         }
 
+        .summary-box {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 7px;
+            padding: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.78rem;
+        }
+
+        .summary-box strong { color: var(--success); }
+
         .result-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 7px;
             max-height: 300px;
             overflow-y: auto;
         }
@@ -216,19 +225,20 @@
         .result-item {
             background: var(--bg-color);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px;
+            border-radius: 7px;
+            padding: 7px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
         }
 
         .result-thumb {
-            width: 45px;
-            height: 45px;
+            width: 44px;
+            height: 44px;
             border-radius: 6px;
             object-fit: cover;
             background: #000;
+            border: 1px solid var(--border);
         }
 
         .result-info {
@@ -252,8 +262,13 @@
             color: var(--text-muted);
         }
 
+        .result-save {
+            color: var(--success);
+            font-weight: 700;
+        }
+
         .btn-sm {
-            padding: 6px 10px;
+            padding: 5px 10px;
             font-size: 0.75rem;
             border-radius: 6px;
             background: var(--accent);
@@ -261,14 +276,113 @@
             text-decoration: none;
             font-weight: 700;
         }
+    
+/* ANDROID COMPACT / SAFE AREA */
+html, body {
+    width: 100%;
+    min-height: 100%;
+}
+body {
+    padding: 2px 5px 6px;
+    align-items: flex-start;
+}
+.container {
+    max-width: 680px;
+    gap: 3px;
+}
+.header {
+    margin-top: 0;
+    line-height: 1;
+}
+.header h1 {
+    font-size: 1.05rem;
+    line-height: 1.05;
+    margin-bottom: 1px;
+}
+.header p {
+    font-size: .68rem;
+    line-height: 1.05;
+}
+.badge {
+    font-size: .62rem;
+    padding: 2px 6px;
+    margin-top: 1px;
+    line-height: 1.1;
+}
+.card {
+    padding: 5px;
+    gap: 5px;
+    border-radius: 10px;
+}
+.grid-2 {
+    gap: 5px;
+}
+.form-group {
+    gap: 2px;
+}
+label {
+    font-size: .68rem;
+    line-height: 1;
+}
+select, input[type="number"], input[type="range"] {
+    padding: 5px 6px;
+    min-height: 34px;
+    font-size: .72rem;
+    border-radius: 6px;
+}
+.drop-zone {
+    padding: 9px 6px;
+    gap: 5px;
+    border-radius: 8px;
+}
+.drop-zone p {
+    font-size: .78rem;
+    line-height: 1.05;
+}
+.btn-upload-group {
+    gap: 5px;
+}
+.btn-upload {
+    padding: 5px 8px;
+    font-size: .7rem;
+    border-radius: 5px;
+}
+.btn {
+    padding: 6px;
+    font-size: .75rem;
+}
+.result-list {
+    gap: 5px;
+    max-height: 280px;
+}
+.result-item {
+    padding: 5px;
+    gap: 6px;
+}
+.result-thumb {
+    width: 38px;
+    height: 38px;
+}
+.result-filename {
+    font-size: .7rem;
+}
+.result-stats {
+    font-size: .65rem;
+}
+.btn-sm {
+    padding: 4px 7px;
+    font-size: .65rem;
+}
+
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>Kompres Foto Massal (Bulk Queue)</h1>
-        <p>Tambah foto satu per satu ke antrean, lalu kompres sekaligus!</p>
+        <h1>Kompresi & Resize Foto Massal (Bulk)</h1>
+        <p>Auto-Target Ukuran File, Batch Processing & Download ZIP</p>
+        <span class="badge">Binary Search Target Compressor Engine</span>
     </div>
 
     <div class="card">
@@ -276,171 +390,209 @@
             <div class="form-group">
                 <label for="formatSelect">Format Output</label>
                 <select id="formatSelect">
-                    <option value="image/jpeg" selected>JPEG</option>
-                    <option value="image/webp">WebP</option>
-                    <option value="image/png">PNG</option>
+                    <option value="image/webp" selected>WebP (Ukuran Paling Kecil)</option>
+                    <option value="image/jpeg">JPEG (Kompatibilitas Formulir)</option>
+                    <option value="image/png">PNG (Transparan / Lossless)</option>
                 </select>
             </div>
-
             <div class="form-group">
-                <label for="resizeMode">Maksimal Dimensi</label>
+                <label for="resizeMode">Batas Maksimal Dimensi</label>
                 <select id="resizeMode">
-                    <option value="1280" selected>Max 1280px</option>
-                    <option value="1920">Max 1920px</option>
-                    <option value="800">Max 800px</option>
-                    <option value="0">Ukuran Asli</option>
+                    <option value="1920" selected>Max 1920px (Full HD)</option>
+                    <option value="1280">Max 1280px (Rekomendasi Web)</option>
+                    <option value="800">Max 800px (Kecil / Pasfoto)</option>
+                    <option value="0">Ukuran Asli (Tanpa Resize)</option>
                 </select>
             </div>
         </div>
 
-        <div class="form-group">
-            <label>Kualitas Foto: <span id="qualVal">80%</span></label>
-            <input type="range" id="qualSlider" min="10" max="100" value="80" oninput="document.getElementById('qualVal').innerText = this.value + '%'">
+        <div class="grid-2">
+            <div class="form-group">
+                <label for="targetMode">Mode Kompresi Bulk</label>
+                <select id="targetMode" onchange="toggleModeSettings()">
+                    <option value="quality" selected>Berdasarkan Persen Kualitas</option>
+                    <option value="target_size">Otomatis Target Maksimal File (KB)</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="qualityBox">
+                <label>Kualitas Foto: <span id="qualVal">80%</span></label>
+                <input type="range" id="qualSlider" min="10" max="100" value="80" oninput="document.getElementById('qualVal').innerText = this.value + '%'">
+            </div>
+
+            <div class="form-group" id="targetSizeBox" style="display: none;">
+                <label for="targetKbInput">Target Ukuran Maksimal File per Foto</label>
+                <select id="targetKbInput">
+                    <option value="200" selected>Maksimal < 200 KB (Biasa untuk CPNS/Sekolah)</option>
+                    <option value="500">Maksimal < 500 KB (Standar Upload Web)</option>
+                    <option value="1000">Maksimal < 1 MB</option>
+                    <option value="100">Maksimal < 100 KB (Sangat Kecil)</option>
+                </select>
+            </div>
         </div>
 
-        <div class="upload-area">
-            <p id="queueStatus">Klik tombol untuk menambah foto ke antrean bulk</p>
-            <label class="btn-upload" for="fileInput">➕ Tambah Foto ke Antrean</label>
-            <input type="file" id="fileInput" onchange="addFileToQueue(this.files)">
+        <div class="drop-zone">
+            <p>Pilih Banyak Foto atau Satu Folder Sekaligus</p>
+            <div class="btn-upload-group">
+                <label class="btn-upload" for="fileInput">Pilih Foto (Multiple File)</label>
+                <label class="btn-upload" for="folderInput">Upload 1 Folder</label>
+            </div>
+            <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFiles(this.files)">
+            <input type="file" id="folderInput" accept="image/*" webkitdirectory directory onchange="handleFiles(this.files)">
         </div>
-    </div>
 
-    <div class="queue-card" id="queueCard">
-        <label>Antrean Foto (<span id="queueCount">0</span> Foto):</label>
-        <div class="queue-list" id="queueList"></div>
+        <div class="progress-bar-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div id="statusText" class="status-text"></div>
 
-        <div class="btn-group" style="margin-top: 6px;">
-            <button class="btn btn-danger" onclick="clearQueue()">Reset Antrean</button>
-            <button class="btn btn-primary" onclick="processBulkCompress()">⚡ Kompres Semua Foto</button>
+        <div id="summaryBox" class="summary-box">
+            <div>Jumlah File Diproses: <strong id="totalCount">0 foto</strong></div>
+            <div>Ukuran Total Awal: <span id="totalOrig">0 MB</span></div>
+            <div>Ukuran Total Akhir: <strong id="totalComp">0 MB</strong></div>
+            <div>Total Ruang Dihemat: <strong id="totalSaved" class="result-save">0%</strong></div>
+        </div>
+
+        <div class="btn-group" id="actionGroup" style="display: none;">
+            <button class="btn btn-danger" onclick="clearQueue()">Hapus Semua Queue</button>
+            <button id="downloadZipBtn" class="btn btn-success" onclick="downloadAllZip()">Download Semua (.ZIP)</button>
         </div>
     </div>
 
     <div class="card" id="resultCard" style="display: none;">
-        <div class="progress-bar-container" id="progressContainer">
-            <div class="progress-bar" id="progressBar"></div>
-        </div>
-        <div id="statusText" class="status-text" style="margin-bottom: 8px;"></div>
-
-        <div class="btn-group" id="downloadZipGroup" style="display: none; margin-bottom: 12px;">
-            <button class="btn btn-success" onclick="downloadAllZip()">📦 Download Semua (.ZIP)</button>
-        </div>
-
-        <label>Daftar Hasil Kompresi:</label>
+        <label>Daftar Hasil Kompresi Massal:</label>
         <div id="resultList" class="result-list"></div>
     </div>
 </div>
 
 <script>
-    let queueFiles = [];
-    let processedResults = [];
+    let processedFiles = [];
 
-    function addFileToQueue(files) {
-        if (!files || files.length === 0) return;
-        const file = files[0];
-
-        queueFiles.push(file);
-        renderQueue();
-
-        document.getElementById('fileInput').value = '';
+    function toggleModeSettings() {
+        const mode = document.getElementById('targetMode').value;
+        document.getElementById('qualityBox').style.display = (mode === 'quality') ? 'flex' : 'none';
+        document.getElementById('targetSizeBox').style.display = (mode === 'target_size') ? 'flex' : 'none';
     }
 
-    function renderQueue() {
-        const queueCard = document.getElementById('queueCard');
-        const queueList = document.getElementById('queueList');
-        const queueCount = document.getElementById('queueCount');
+    async function handleFiles(files) {
+        if (!files || files.length === 0) return;
 
-        if (queueFiles.length === 0) {
-            queueCard.style.display = 'none';
+        // Filter hanya file gambar
+        const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+        if (imageFiles.length === 0) {
+            alert('Tidak ditemukan file gambar dalam pilihan.');
             return;
         }
 
-        queueCard.style.display = 'flex';
-        queueCount.innerText = queueFiles.length;
-        queueList.innerHTML = '';
-
-        queueFiles.forEach((file, index) => {
-            const item = document.createElement('div');
-            item.className = 'queue-item';
-            item.innerHTML = `
-                <span><strong>${index + 1}.</strong> ${file.name} (${formatSize(file.size)})</span>
-                <button class="btn-del" onclick="removeQueueItem(${index})">Hapus</button>
-            `;
-            queueList.appendChild(item);
-        });
-    }
-
-    function removeQueueItem(index) {
-        queueFiles.splice(index, 1);
-        renderQueue();
-    }
-
-    function clearQueue() {
-        queueFiles = [];
-        processedResults = [];
-        renderQueue();
-        document.getElementById('resultCard').style.display = 'none';
-        document.getElementById('fileInput').value = '';
-    }
-
-    async function processBulkCompress() {
-        if (queueFiles.length === 0) return;
-
-        const resultCard = document.getElementById('resultCard');
         const progressContainer = document.getElementById('progressContainer');
         const progressBar = document.getElementById('progressBar');
         const statusText = document.getElementById('statusText');
+        const resultCard = document.getElementById('resultCard');
         const resultList = document.getElementById('resultList');
-        const downloadZipGroup = document.getElementById('downloadZipGroup');
+        const summaryBox = document.getElementById('summaryBox');
+        const actionGroup = document.getElementById('actionGroup');
 
-        resultCard.style.display = 'flex';
+        clearQueue();
+
+        resultCard.style.display = 'block';
         progressContainer.style.display = 'block';
-        downloadZipGroup.style.display = 'none';
-        resultList.innerHTML = '';
-        processedResults = [];
+        actionGroup.style.display = 'flex';
         progressBar.style.width = '0%';
 
-        for (let i = 0; i < queueFiles.length; i++) {
-            const file = queueFiles[i];
-            statusText.innerText = `Memproses foto ${i + 1} dari ${queueFiles.length}: ${file.name}`;
+        const mimeType = document.getElementById('formatSelect').value;
+        const maxDim = parseInt(document.getElementById('resizeMode').value);
+        const mode = document.getElementById('targetMode').value;
+        const targetKB = parseInt(document.getElementById('targetKbInput').value);
+        const defaultQuality = parseInt(document.getElementById('qualSlider').value) / 100;
 
-            try {
-                const dataUrl = await readFileAsDataURL(file);
-                const result = await compressDataUrl(dataUrl, file.name, file.size);
-                
-                processedResults.push(result);
-                renderResultItem(result, file.size);
+        let totalOriginalSize = 0;
+        let totalCompressedSize = 0;
 
-            } catch (err) {
-                console.error("Gagal kompres: " + file.name, err);
+        for (let i = 0; i < imageFiles.length; i++) {
+            const file = imageFiles[i];
+            statusText.innerText = `Memproses foto ${i + 1} dari ${imageFiles.length}: ${file.name}`;
+            
+            totalOriginalSize += file.size;
+
+            let compressedBlob;
+            if (mode === 'target_size') {
+                compressedBlob = await compressToTargetKB(file, maxDim, mimeType, targetKB);
+            } else {
+                compressedBlob = await compressImage(file, maxDim, mimeType, defaultQuality);
             }
 
-            const pct = Math.round(((i + 1) / queueFiles.length) * 100);
+            totalCompressedSize += compressedBlob.size;
+
+            const ext = mimeType.split('/')[1];
+            const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+            const newFilename = `${originalName}_min.${ext}`;
+
+            const itemData = {
+                blob: compressedBlob,
+                filename: newFilename,
+                originalSize: file.size,
+                compressedSize: compressedBlob.size,
+                url: URL.createObjectURL(compressedBlob)
+            };
+
+            processedFiles.push(itemData);
+            renderResultItem(itemData);
+
+            const pct = Math.round(((i + 1) / imageFiles.length) * 100);
             progressBar.style.width = pct + '%';
         }
 
-        statusText.innerText = `Selesai! ${processedResults.length} foto berhasil dikompres.`;
-        if (processedResults.length > 1) {
-            downloadZipGroup.style.display = 'flex';
+        statusText.innerText = `Selesai memproses ${imageFiles.length} foto massal.`;
+
+        // Update Summary
+        document.getElementById('totalCount').innerText = `${imageFiles.length} Foto`;
+        document.getElementById('totalOrig').innerText = formatSize(totalOriginalSize);
+        document.getElementById('totalComp').innerText = formatSize(totalCompressedSize);
+
+        const savedPercent = totalOriginalSize > 0 
+            ? (((totalOriginalSize - totalCompressedSize) / totalOriginalSize) * 100).toFixed(1)
+            : 0;
+            
+        document.getElementById('totalSaved').innerText = `${savedPercent}% (${formatSize(totalOriginalSize - totalCompressedSize)})`;
+        summaryBox.style.display = 'flex';
+    }
+
+    // Algoritma Binary Search untuk memaksa ukuran di bawah Target KB
+    async function compressToTargetKB(file, maxDim, mimeType, targetKB) {
+        let minQ = 0.05;
+        let maxQ = 0.95;
+        let bestBlob = null;
+        const targetBytes = targetKB * 1024;
+
+        // Coba kompresi awal
+        bestBlob = await compressImage(file, maxDim, mimeType, maxQ);
+        if (bestBlob.size <= targetBytes) return bestBlob;
+
+        // Iterasi binary search 5-6 kali untuk menemukan kualitas paling presisi
+        for (let step = 0; step < 6; step++) {
+            const currentQ = (minQ + maxQ) / 2;
+            const testBlob = await compressImage(file, maxDim, mimeType, currentQ);
+
+            if (testBlob.size <= targetBytes) {
+                bestBlob = testBlob;
+                minQ = currentQ; // Coba naikkan kualitas sedikit
+            } else {
+                maxQ = currentQ; // Turunkan kualitas
+            }
         }
+
+        // Jika masih terlalu besar, turunkan dimensi resolusi otomatis
+        if (bestBlob.size > targetBytes && maxDim !== 800) {
+            bestBlob = await compressImage(file, 800, mimeType, 0.6);
+        }
+
+        return bestBlob;
     }
 
-    function readFileAsDataURL(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(e);
-            reader.readAsDataURL(file);
-        });
-    }
-
-    function compressDataUrl(dataUrl, filename, originalSize) {
+    function compressImage(file, maxDim, mimeType, quality) {
         return new Promise((resolve) => {
-            const mimeType = document.getElementById('formatSelect').value;
-            const maxDim = parseInt(document.getElementById('resizeMode').value);
-            const quality = parseInt(document.getElementById('qualSlider').value) / 100;
-
             const img = new Image();
-            img.onload = function() {
+            img.onload = () => {
                 let width = img.width;
                 let height = img.height;
 
@@ -459,63 +611,59 @@
                 canvas.height = height;
 
                 const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+
                 if (mimeType === 'image/jpeg') {
                     ctx.fillStyle = '#FFFFFF';
                     ctx.fillRect(0, 0, width, height);
                 }
+
                 ctx.drawImage(img, 0, 0, width, height);
 
-                const compressedDataUrl = canvas.toDataURL(mimeType, quality);
-                canvas.width = 0;
-                canvas.height = 0;
+                canvas.toBlob((blob) => {
+                    resolve(blob);
+                }, mimeType, quality);
 
-                const head = "data:" + mimeType + ";base64,";
-                const bytes = Math.round((compressedDataUrl.length - head.length) * 3 / 4);
-
-                const ext = mimeType.split('/')[1];
-                const cleanName = filename.substring(0, filename.lastIndexOf('.')) || filename;
-                const newFilename = `${cleanName}_min.${ext}`;
-
-                resolve({
-                    dataUrl: compressedDataUrl,
-                    filename: newFilename,
-                    bytes: bytes
-                });
+                URL.revokeObjectURL(img.src);
             };
-
-            img.onerror = function() {
-                resolve({
-                    dataUrl: dataUrl,
-                    filename: filename,
-                    bytes: originalSize
-                });
-            };
-
-            img.src = dataUrl;
+            img.src = URL.createObjectURL(file);
         });
     }
 
-    function renderResultItem(item, originalSize) {
+    function renderResultItem(item) {
         const resultList = document.getElementById('resultList');
         const div = document.createElement('div');
         div.className = 'result-item';
 
-        const savedPct = originalSize > 0 
-            ? (((originalSize - item.bytes) / originalSize) * 100).toFixed(0) 
-            : 0;
+        const savedPct = (((item.originalSize - item.compressedSize) / item.originalSize) * 100).toFixed(0);
 
         div.innerHTML = `
-            <img src="${item.dataUrl}" class="result-thumb" alt="preview">
+            <img src="${item.url}" class="result-thumb" alt="preview">
             <div class="result-info">
-                <div class="result-filename">${item.filename}</div>
+                <div class="result-filename" title="${item.filename}">${item.filename}</div>
                 <div class="result-stats">
-                    ${formatSize(originalSize)} ➔ <strong>${formatSize(item.bytes)}</strong> (-${savedPct}%)
+                    ${formatSize(item.originalSize)} ➔ <strong>${formatSize(item.compressedSize)}</strong>
+                    <span class="result-save">(-${savedPct}%)</span>
                 </div>
             </div>
-            <a href="${item.dataUrl}" download="${item.filename}" class="btn-sm">Download</a>
+            <a href="${item.url}" download="${item.filename}" class="btn-sm">Download</a>
         `;
 
         resultList.appendChild(div);
+    }
+
+    function clearQueue() {
+        processedFiles.forEach(item => URL.revokeObjectURL(item.url));
+        processedFiles = [];
+        document.getElementById('resultList').innerHTML = '';
+        document.getElementById('summaryBox').style.display = 'none';
+        document.getElementById('actionGroup').style.display = 'none';
+        document.getElementById('resultCard').style.display = 'none';
+        document.getElementById('progressContainer').style.display = 'none';
+        document.getElementById('statusText').innerText = '';
+        document.getElementById('fileInput').value = '';
+        document.getElementById('folderInput').value = '';
     }
 
     function formatSize(bytes) {
@@ -525,27 +673,19 @@
     }
 
     async function downloadAllZip() {
-        if (!window.JSZip || processedResults.length === 0) return;
+        if (!window.JSZip || processedFiles.length === 0) return;
 
-        try {
-            const zip = new JSZip();
-            processedResults.forEach(item => {
-                const base64Content = item.dataUrl.split(',')[1];
-                zip.file(item.filename, base64Content, { base64: true });
-            });
+        const zip = new JSZip();
+        processedFiles.forEach(item => {
+            zip.file(item.filename, item.blob);
+        });
 
-            const base64Data = await zip.generateAsync({ type: 'base64' });
-            const dataUrl = 'data:application/zip;base64,' + base64Data;
-            
-            const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = 'foto_massal_terkompresi.zip';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } catch (err) {
-            alert('Gagal membuat ZIP: ' + err.message);
-        }
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(zipBlob);
+        a.download = 'foto_massal_terkompresi.zip';
+        a.click();
+        URL.revokeObjectURL(a.href);
     }
 </script>
 
