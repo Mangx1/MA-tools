@@ -3,11 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bulk Media Compressor & Resizer Pro</title>
-
-    <!-- JSZip CDN untuk Download Arsip ZIP -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
+    <title>Kompres & Resize Gambar Pro</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -39,7 +35,7 @@
 
         .container {
             width: 100%;
-            max-width: 680px;
+            max-width: 600px;
             display: flex;
             flex-direction: column;
             gap: 16px;
@@ -58,17 +54,6 @@
         .header p {
             font-size: 0.85rem;
             color: var(--text-muted);
-        }
-
-        .badge {
-            display: inline-block;
-            background: rgba(56, 189, 248, 0.15);
-            color: var(--accent);
-            font-size: 0.75rem;
-            padding: 4px 10px;
-            border-radius: 6px;
-            margin-top: 6px;
-            font-weight: 700;
         }
 
         .card {
@@ -97,11 +82,9 @@
             font-size: 0.8rem;
             font-weight: 600;
             color: var(--text-muted);
-            display: flex;
-            justify-content: space-between;
         }
 
-        select, input[type="number"], input[type="range"] {
+        select, input[type="range"] {
             width: 100%;
             padding: 10px;
             background-color: var(--bg-color);
@@ -112,32 +95,15 @@
             outline: none;
         }
 
-        .drop-zone {
+        .upload-area {
             border: 2px dashed var(--accent);
             border-radius: 10px;
-            padding: 24px;
+            padding: 20px;
             text-align: center;
             background: rgba(56, 189, 248, 0.03);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
-            transition: background 0.2s;
-        }
-
-        .drop-zone:hover {
-            background: rgba(56, 189, 248, 0.08);
-        }
-
-        .drop-zone p {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        .btn-upload-group {
-            display: flex;
-            justify-content: center;
             gap: 10px;
         }
 
@@ -152,129 +118,57 @@
             display: inline-block;
         }
 
+        /* INPUT POLOS TANPA ACCEPT/MULTIPLE SEPERTI PROJEK BRANKAS */
         input[type="file"] {
             display: none;
         }
 
-        .btn-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 12px;
+        .btn-danger {
+            background-color: var(--danger);
+            color: #fff;
+            padding: 10px;
             border: none;
             border-radius: 8px;
-            background-color: var(--accent);
-            color: #000;
             font-weight: 700;
-            font-size: 0.9rem;
             cursor: pointer;
-            transition: background-color 0.2s;
-            text-align: center;
         }
 
-        .btn:hover { background-color: var(--accent-hover); }
-        .btn-danger { background-color: var(--danger); color: #fff; }
-        .btn-success { background-color: var(--success); color: #000; }
-
-        .progress-bar-container {
-            width: 100%;
-            background-color: var(--bg-color);
-            border-radius: 6px;
-            height: 8px;
-            overflow: hidden;
-            display: none;
-        }
-
-        .progress-bar {
-            height: 100%;
-            width: 0%;
-            background-color: var(--accent);
-            transition: width 0.2s;
-        }
-
-        .status-text {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-align: center;
-        }
-
-        .summary-box {
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            border-radius: 8px;
-            padding: 12px;
+        .result-card {
             display: none;
             flex-direction: column;
-            gap: 4px;
-            font-size: 0.85rem;
-        }
-
-        .summary-box strong { color: var(--success); }
-
-        .result-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .result-item {
-            background: var(--bg-color);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px;
-            display: flex;
-            align-items: center;
             gap: 12px;
-        }
-
-        .result-thumb {
-            width: 50px;
-            height: 50px;
-            border-radius: 6px;
-            object-fit: cover;
-            background: #000;
+            background: var(--card-bg);
             border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
         }
 
-        .result-info {
-            flex: 1;
+        .preview-img {
+            max-width: 100%;
+            max-height: 250px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #000;
+        }
+
+        .stats {
+            font-size: 0.85rem;
             display: flex;
-            flex-direction: column;
-            gap: 2px;
-            overflow: hidden;
+            justify-content: space-between;
+            background: var(--bg-color);
+            padding: 10px;
+            border-radius: 8px;
         }
 
-        .result-filename {
-            font-size: 0.8rem;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .result-stats {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .result-save {
-            color: var(--success);
-            font-weight: 700;
-        }
-
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 0.75rem;
-            border-radius: 6px;
-            background: var(--accent);
+        .btn-download {
+            display: block;
+            text-align: center;
+            padding: 12px;
+            background: var(--success);
             color: #000;
             text-decoration: none;
             font-weight: 700;
+            border-radius: 8px;
         }
     </style>
 </head>
@@ -282,9 +176,8 @@
 
 <div class="container">
     <div class="header">
-        <h1>Kompresi & Resize Foto Massal (Bulk)</h1>
-        <p>Auto-Target Ukuran File, Batch Processing & Download ZIP</p>
-        <span class="badge">Binary Search Target Compressor Engine</span>
+        <h1>Kompres Gambar Pro</h1>
+        <p>Aman & Stabil untuk WebView Android</p>
     </div>
 
     <div class="card">
@@ -292,319 +185,134 @@
             <div class="form-group">
                 <label for="formatSelect">Format Output</label>
                 <select id="formatSelect">
-                    <option value="image/webp" selected>WebP (Ukuran Paling Kecil)</option>
-                    <option value="image/jpeg">JPEG (Kompatibilitas Formulir)</option>
-                    <option value="image/png">PNG (Transparan / Lossless)</option>
+                    <option value="image/jpeg" selected>JPEG</option>
+                    <option value="image/webp">WebP</option>
+                    <option value="image/png">PNG</option>
                 </select>
             </div>
+
             <div class="form-group">
-                <label for="resizeMode">Batas Maksimal Dimensi</label>
+                <label for="resizeMode">Maksimal Dimensi</label>
                 <select id="resizeMode">
-                    <option value="1920" selected>Max 1920px (Full HD)</option>
-                    <option value="1280">Max 1280px (Rekomendasi Web)</option>
-                    <option value="800">Max 800px (Kecil / Pasfoto)</option>
-                    <option value="0">Ukuran Asli (Tanpa Resize)</option>
+                    <option value="1280" selected>Max 1280px</option>
+                    <option value="1920">Max 1920px (Full HD)</option>
+                    <option value="800">Max 800px</option>
+                    <option value="0">Ukuran Asli</option>
                 </select>
             </div>
         </div>
 
-        <div class="grid-2">
-            <div class="form-group">
-                <label for="targetMode">Mode Kompresi Bulk</label>
-                <select id="targetMode" onchange="toggleModeSettings()">
-                    <option value="quality" selected>Berdasarkan Persen Kualitas</option>
-                    <option value="target_size">Otomatis Target Maksimal File (KB)</option>
-                </select>
-            </div>
-
-            <div class="form-group" id="qualityBox">
-                <label>Kualitas Foto: <span id="qualVal">80%</span></label>
-                <input type="range" id="qualSlider" min="10" max="100" value="80" oninput="document.getElementById('qualVal').innerText = this.value + '%'">
-            </div>
-
-            <div class="form-group" id="targetSizeBox" style="display: none;">
-                <label for="targetKbInput">Target Ukuran Maksimal File per Foto</label>
-                <select id="targetKbInput">
-                    <option value="200" selected>Maksimal &lt; 200 KB (Biasa untuk CPNS/Sekolah)</option>
-                    <option value="500">Maksimal &lt; 500 KB (Standar Upload Web)</option>
-                    <option value="1000">Maksimal &lt; 1 MB</option>
-                    <option value="100">Maksimal &lt; 100 KB (Sangat Kecil)</option>
-                </select>
-            </div>
+        <div class="form-group">
+            <label>Kualitas Foto: <span id="qualVal">80%</span></label>
+            <input type="range" id="qualSlider" min="10" max="100" value="80" oninput="document.getElementById('qualVal').innerText = this.value + '%'">
         </div>
 
-        <div class="drop-zone">
-            <p>Pilih Banyak Foto Sekaligus Dari Galeri / File Manager</p>
-            <div class="btn-upload-group">
-                <label class="btn-upload" for="fileInput">📁 Pilih Foto (Multiple File)</label>
-            </div>
-            <!-- WEBVIEW SAFE INPUT: Tanpa webkitdirectory untuk mencegah Force Close -->
-            <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFiles(this.files)">
-        </div>
-
-        <div class="progress-bar-container" id="progressContainer">
-            <div class="progress-bar" id="progressBar"></div>
-        </div>
-        <div id="statusText" class="status-text"></div>
-
-        <div id="summaryBox" class="summary-box">
-            <div>Jumlah File Diproses: <strong id="totalCount">0 foto</strong></div>
-            <div>Ukuran Total Awal: <span id="totalOrig">0 MB</span></div>
-            <div>Ukuran Total Akhir: <strong id="totalComp">0 MB</strong></div>
-            <div>Total Ruang Dihemat: <strong id="totalSaved" class="result-save">0%</strong></div>
-        </div>
-
-        <div class="btn-group" id="actionGroup" style="display: none;">
-            <button class="btn btn-danger" onclick="clearQueue()">Hapus Semua Queue</button>
-            <button id="downloadZipBtn" class="btn btn-success" onclick="downloadAllZip()">Download Semua (.ZIP)</button>
+        <div class="upload-area">
+            <p id="fileStatus">Pilih foto dari galeri HP kamu</p>
+            <label class="btn-upload" for="fileInput">Pilih Foto</label>
+            <input type="file" id="fileInput" onchange="processSingleFile(this.files)">
         </div>
     </div>
 
-    <div class="card" id="resultCard" style="display: none;">
-        <label>Daftar Hasil Kompresi Massal:</label>
-        <div id="resultList" class="result-list"></div>
+    <div class="result-card" id="resultCard">
+        <label>Hasil Kompresi:</label>
+        <img id="previewImg" class="preview-img" alt="Preview">
+        <div class="stats">
+            <span>Awal: <strong id="origSize">-</strong></span>
+            <span>Hasil: <strong id="compSize" style="color: var(--success);">-</strong></span>
+        </div>
+        <a id="downloadBtn" class="btn-download" download="foto_terkompresi.jpg">Download Hasil Foto</a>
+        <button class="btn-danger" onclick="resetAll()">Reset / Pilih Foto Lain</button>
     </div>
 </div>
 
 <script>
-    let processedFiles = [];
+    function processSingleFile(files) {
+        if (!files || files.length === 0) return;
+        const file = files[0];
 
-    function toggleModeSettings() {
-        const mode = document.getElementById('targetMode').value;
-        document.getElementById('qualityBox').style.display = (mode === 'quality') ? 'flex' : 'none';
-        document.getElementById('targetSizeBox').style.display = (mode === 'target_size') ? 'flex' : 'none';
+        document.getElementById('fileStatus').innerText = "Memproses: " + file.name;
+
+        // FileReader jauh lebih aman di Android WebView dibanding URL.createObjectURL
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const dataUrl = e.target.result;
+            compressDataUrl(dataUrl, file.size, file.name);
+        };
+        reader.onerror = function() {
+            alert("Gagal membaca file foto.");
+        };
+        reader.readAsDataURL(file);
     }
 
-    async function handleFiles(files) {
-        if (!files || files.length === 0) return;
-
-        // Filter hanya file gambar
-        const imageFiles = Array.from(files).filter(f => f.type && f.type.startsWith('image/'));
-        if (imageFiles.length === 0) {
-            alert('Tidak ditemukan file gambar dalam pilihan.');
-            return;
-        }
-
-        const progressContainer = document.getElementById('progressContainer');
-        const progressBar = document.getElementById('progressBar');
-        const statusText = document.getElementById('statusText');
-        const resultCard = document.getElementById('resultCard');
-        const summaryBox = document.getElementById('summaryBox');
-        const actionGroup = document.getElementById('actionGroup');
-
-        clearQueue();
-
-        resultCard.style.display = 'block';
-        progressContainer.style.display = 'block';
-        actionGroup.style.display = 'flex';
-        progressBar.style.width = '0%';
-
+    function compressDataUrl(dataUrl, originalSize, filename) {
         const mimeType = document.getElementById('formatSelect').value;
         const maxDim = parseInt(document.getElementById('resizeMode').value);
-        const mode = document.getElementById('targetMode').value;
-        const targetKB = parseInt(document.getElementById('targetKbInput').value);
-        const defaultQuality = parseInt(document.getElementById('qualSlider').value) / 100;
+        const quality = parseInt(document.getElementById('qualSlider').value) / 100;
 
-        let totalOriginalSize = 0;
-        let totalCompressedSize = 0;
+        const img = new Image();
+        img.onload = function() {
+            let width = img.width;
+            let height = img.height;
 
-        for (let i = 0; i < imageFiles.length; i++) {
-            const file = imageFiles[i];
-            statusText.innerText = `Memproses foto ${i + 1} dari ${imageFiles.length}: ${file.name}`;
-            
-            totalOriginalSize += file.size;
-
-            let compressedBlob;
-            if (mode === 'target_size') {
-                compressedBlob = await compressToTargetKB(file, maxDim, mimeType, targetKB);
-            } else {
-                compressedBlob = await compressImage(file, maxDim, mimeType, defaultQuality);
+            if (maxDim > 0 && (width > maxDim || height > maxDim)) {
+                if (width > height) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                } else {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                }
             }
 
-            totalCompressedSize += compressedBlob.size;
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            if (mimeType === 'image/jpeg') {
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, width, height);
+            }
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const compressedDataUrl = canvas.toDataURL(mimeType, quality);
+
+            // Perkiraan ukuran byte Base64
+            const head = "data:" + mimeType + ";base64,";
+            const compressedBytes = Math.round((compressedDataUrl.length - head.length) * 3 / 4);
+
+            document.getElementById('previewImg').src = compressedDataUrl;
+            document.getElementById('origSize').innerText = formatSize(originalSize);
+            document.getElementById('compSize').innerText = formatSize(compressedBytes);
 
             const ext = mimeType.split('/')[1];
-            const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-            const newFilename = `${originalName}_min.${ext}`;
+            const cleanName = filename.substring(0, filename.lastIndexOf('.')) || filename;
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.href = compressedDataUrl;
+            downloadBtn.download = cleanName + "_min." + ext;
 
-            const itemData = {
-                blob: compressedBlob,
-                filename: newFilename,
-                originalSize: file.size,
-                compressedSize: compressedBlob.size,
-                url: URL.createObjectURL(compressedBlob)
-            };
+            document.getElementById('resultCard').style.display = 'flex';
+            document.getElementById('fileStatus').innerText = "Selesai mengompres!";
+        };
 
-            processedFiles.push(itemData);
-            renderResultItem(itemData);
+        img.onerror = function() {
+            alert("File yang dipilih bukan format gambar yang valid.");
+        };
 
-            const pct = Math.round(((i + 1) / imageFiles.length) * 100);
-            progressBar.style.width = pct + '%';
-        }
-
-        statusText.innerText = `Selesai memproses ${imageFiles.length} foto massal.`;
-
-        // Update Summary
-        document.getElementById('totalCount').innerText = `${imageFiles.length} Foto`;
-        document.getElementById('totalOrig').innerText = formatSize(totalOriginalSize);
-        document.getElementById('totalComp').innerText = formatSize(totalCompressedSize);
-
-        const savedPercent = totalOriginalSize > 0 
-            ? (((totalOriginalSize - totalCompressedSize) / totalOriginalSize) * 100).toFixed(1)
-            : 0;
-            
-        document.getElementById('totalSaved').innerText = `${savedPercent}% (${formatSize(totalOriginalSize - totalCompressedSize)})`;
-        summaryBox.style.display = 'flex';
+        img.src = dataUrl;
     }
 
-    // Algoritma Binary Search untuk memaksa ukuran di bawah Target KB
-    async function compressToTargetKB(file, maxDim, mimeType, targetKB) {
-        let minQ = 0.05;
-        let maxQ = 0.95;
-        let bestBlob = null;
-        const targetBytes = targetKB * 1024;
-
-        // Coba kompresi awal
-        bestBlob = await compressImage(file, maxDim, mimeType, maxQ);
-        if (bestBlob.size <= targetBytes) return bestBlob;
-
-        // Iterasi binary search 5 kali untuk menemukan kualitas paling presisi
-        for (let step = 0; step < 5; step++) {
-            const currentQ = (minQ + maxQ) / 2;
-            const testBlob = await compressImage(file, maxDim, mimeType, currentQ);
-
-            if (testBlob.size <= targetBytes) {
-                bestBlob = testBlob;
-                minQ = currentQ; // Coba naikkan kualitas sedikit
-            } else {
-                maxQ = currentQ; // Turunkan kualitas
-            }
-        }
-
-        // Jika masih terlalu besar, turunkan dimensi resolusi otomatis
-        if (bestBlob.size > targetBytes && maxDim !== 800) {
-            bestBlob = await compressImage(file, 800, mimeType, 0.6);
-        }
-
-        return bestBlob;
-    }
-
-    function compressImage(file, maxDim, mimeType, quality) {
-        return new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => {
-                let width = img.width;
-                let height = img.height;
-
-                if (maxDim > 0 && (width > maxDim || height > maxDim)) {
-                    if (width > height) {
-                        height = Math.round((height * maxDim) / width);
-                        width = maxDim;
-                    } else {
-                        width = Math.round((width * maxDim) / height);
-                        height = maxDim;
-                    }
-                }
-
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-
-                const ctx = canvas.getContext('2d');
-                ctx.imageSmoothingEnabled = true;
-                ctx.imageSmoothingQuality = 'high';
-
-                if (mimeType === 'image/jpeg') {
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.fillRect(0, 0, width, height);
-                }
-
-                ctx.drawImage(img, 0, 0, width, height);
-
-                canvas.toBlob((blob) => {
-                    // Releasing Canvas RAM Memory buffer for WebView
-                    canvas.width = 0;
-                    canvas.height = 0;
-                    resolve(blob);
-                }, mimeType, quality);
-
-                URL.revokeObjectURL(img.src);
-            };
-            img.onerror = () => {
-                resolve(file); // Fallback jika gagal load
-            };
-            img.src = URL.createObjectURL(file);
-        });
-    }
-
-    function renderResultItem(item) {
-        const resultList = document.getElementById('resultList');
-        const div = document.createElement('div');
-        div.className = 'result-item';
-
-        const savedPct = item.originalSize > 0 
-            ? (((item.originalSize - item.compressedSize) / item.originalSize) * 100).toFixed(0) 
-            : 0;
-
-        div.innerHTML = `
-            <img src="${item.url}" class="result-thumb" alt="preview">
-            <div class="result-info">
-                <div class="result-filename" title="${item.filename}">${item.filename}</div>
-                <div class="result-stats">
-                    ${formatSize(item.originalSize)} ➔ <strong>${formatSize(item.compressedSize)}</strong>
-                    <span class="result-save">(-${savedPct}%)</span>
-                </div>
-            </div>
-            <a href="${item.url}" download="${item.filename}" class="btn-sm">Download</a>
-        `;
-
-        resultList.appendChild(div);
-    }
-
-    function clearQueue() {
-        processedFiles.forEach(item => {
-            if (item.url) URL.revokeObjectURL(item.url);
-        });
-        processedFiles = [];
-        document.getElementById('resultList').innerHTML = '';
-        document.getElementById('summaryBox').style.display = 'none';
-        document.getElementById('actionGroup').style.display = 'none';
+    function resetAll() {
+        document.getElementById('fileInput').value = '';
         document.getElementById('resultCard').style.display = 'none';
-        document.getElementById('progressContainer').style.display = 'none';
-        document.getElementById('statusText').innerText = '';
-        
-        const fileInput = document.getElementById('fileInput');
-        if (fileInput) fileInput.value = '';
+        document.getElementById('fileStatus').innerText = 'Pilih foto dari galeri HP kamu';
     }
 
     function formatSize(bytes) {
         if (bytes < 1024) return bytes + ' B';
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-    }
-
-    async function downloadAllZip() {
-        if (!window.JSZip || processedFiles.length === 0) return;
-
-        try {
-            const zip = new JSZip();
-            processedFiles.forEach(item => {
-                zip.file(item.filename, item.blob);
-            });
-
-            // Menggunakan Base64 Data URL agar ramah dan tidak crash di WebView Android
-            const base64Data = await zip.generateAsync({ type: 'base64' });
-            const dataUrl = 'data:application/zip;base64,' + base64Data;
-            
-            const a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = 'foto_massal_terkompresi.zip';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } catch (err) {
-            alert('Gagal membuat ZIP: ' + err.message);
-        }
     }
 </script>
 
