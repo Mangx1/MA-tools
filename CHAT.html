@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp E2EE - Private 1-on-1 Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+</head>
+<body class="bg-[#0b141a] text-slate-100 min-h-screen flex items-center justify-center p-2 md:p-4 font-sans">
+
+  <div class="w-full max-w-4xl h-[92vh] bg-[#111b21] rounded-2xl border border-slate-800 flex flex-col overflow-hidden shadow-2xl relative">
+
+    <div id="setup-screen" class="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
+      <div class="w-16 h-16 rounded-full bg-[#00a884]/20 text-[#00a884] flex items-center justify-center text-3xl">
+        <i class="fa-solid fa-user-lock"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold text-slate-100">WhatsApp 1-on-1 Private Chat</h1>
+        <p class="text-xs text-slate-400 mt-1">Obrolan pribadi terenkripsi AES-256 antardua pengguna.</p>
+      </div>
+
+      <div class="bg-[#202c33] p-5 rounded-xl border border-slate-700/60 w-full max-w-md text-left space-y-3">
+        <div>
+          <label class="text-[11px] text-slate-400 font-medium block mb-1">USERNAME KAMU:</label>
+          <input type="text" id="username-input" placeholder="Contoh: alice"
+            class="w-full bg-[#111b21] border border-slate-800 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-[#00a884]">
+        </div>
+        <div>
+          <label class="text-[11px] text-slate-400 font-medium block mb-1">USERNAME TEMAN (Tujuan):</label>
+          <input type="text" id="friend-input" placeholder="Contoh: bob"
+            class="w-full bg-[#111b21] border border-slate-800 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-[#00a884]">
+        </div>
+        <div>
+          <label class="text-[11px] text-slate-400 font-medium block mb-1">KUNCI CHAT RAHASIA (Password Kalian Berdua):</label>
+          <input type="password" id="secret-input" placeholder="Password dekripsi..."
+            class="w-full bg-[#111b21] border border-slate-800 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-[#00a884]">
+        </div>
+
+        <button onclick="startPrivateChat()"
+          class="w-full bg-[#00a884] hover:bg-[#008f70] text-slate-950 font-bold p-2.5 rounded-lg text-sm transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-comments"></i> Mulai Chat Pribadi
+        </button>
+      </div>
+    </div>
+
+    <div id="chat-screen" class="hidden flex-1 flex flex-col h-full bg-[#0b141a]">
+      <header class="bg-[#202c33] p-3 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center font-bold text-slate-950">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div>
+            <h2 id="chat-target-title" class="text-sm font-semibold text-slate-200">Teman</h2>
+            <span class="text-[11px] text-[#00a884] flex items-center gap-1">
+              <i class="fa-solid fa-lock text-[9px]"></i> Privat 1-on-1 & Terenkripsi E2EE
+            </span>
+          </div>
+        </div>
+        <button onclick="location.reload()" class="text-xs bg-rose-600/20 text-rose-400 hover:bg-rose-600/30 px-3 py-1.5 rounded-lg transition">
+          Keluar
+        </button>
+      </header>
+
+      <div id="message-container" class="flex-1 p-4 overflow-y-auto space-y-3 bg-[radial-gradient(#202c33_1px,transparent_1px)] [background-size:16px_16px]"></div>
+
+      <form onsubmit="sendChatMessage(event)" class="bg-[#202c33] p-3 border-t border-slate-800 flex items-center gap-2">
+        <input type="text" id="chat-input" placeholder="Ketik pesan pribadi..." required
+          class="flex-1 bg-[#2a3942] text-slate-100 placeholder-slate-400 text-sm px-4 py-2.5 rounded-lg focus:outline-none">
+        <button type="submit" class="w-10 h-10 bg-[#00a884] hover:bg-[#008f70] text-slate-950 rounded-lg flex items-center justify-center transition">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD9oh0DF2ciMCgziFiKk8RcFt_EQPAUIME",
+      authDomain: "ma-chat-b14df.firebaseapp.com",
+      databaseURL: "https://ma-chat-b14df-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "ma-chat-b14df",
+      storageBucket: "ma-chat-b14df.firebasestorage.app",
+      messagingSenderId: "961830081336",
+      appId: "1:961830081336:web:3a4f3c421996665723a7cd"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let cryptoKey = null;
+    let myName = '';
+    let targetFriend = '';
+    let roomRef = null;
+    let audioCtx = null;
+    let isInitialLoad = true;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playSendSound() {
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.08);
+      } catch (e) {}
+    }
+
+    function playReceiveSound() {
+      try {
+        initAudio();
+        const now = audioCtx.currentTime;
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(800, now);
+        gain1.gain.setValueAtTime(0.2, now);
+        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.08);
+
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1200, now + 0.07);
+        gain2.gain.setValueAtTime(0.25, now + 0.07);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(now + 0.07);
+        osc2.stop(now + 0.22);
+      } catch (e) {}
+    }
+
+    async function startPrivateChat() {
+      initAudio();
+      const name = document.getElementById('username-input').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+      const friend = document.getElementById('friend-input').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+      const secret = document.getElementById('secret-input').value.trim();
+
+      if (!name || !friend || !secret) {
+        alert('Mohon isi Username Kamu, Username Teman, dan Kunci Rahasia!');
+        return;
+      }
+
+      if (name === friend) {
+        alert('Username teman tidak boleh sama dengan username kamu!');
+        return;
+      }
+
+      myName = name;
+      targetFriend = friend;
+
+      // Pembuatan ID Room Privat Otomatis (Pengurutan Alfabetis)
+      const pair = [myName, targetFriend].sort();
+      const privateRoomId = `p2p_${pair[0]}_${pair[1]}`;
+
+      cryptoKey = await deriveAESKey(secret, privateRoomId);
+
+      document.getElementById('setup-screen').classList.add('hidden');
+      document.getElementById('chat-screen').classList.remove('hidden');
+      document.getElementById('chat-target-title').innerText = '@' + targetFriend;
+
+      roomRef = db.ref('direct_chats/' + privateRoomId + '/messages');
+      
+      roomRef.limitToLast(50).once('value', () => {
+        isInitialLoad = false;
+      });
+
+      roomRef.limitToLast(50).on('child_added', async (snapshot) => {
+        const data = snapshot.val();
+        try {
+          const text = await decryptData(data.ciphertext, data.iv);
+          const isSelf = data.sender === myName;
+          
+          renderBubble(text, data.sender, data.time, isSelf, data.ciphertext);
+
+          if (!isInitialLoad) {
+            if (isSelf) playSendSound();
+            else playReceiveSound();
+          }
+        } catch (e) {
+          renderBubble('[Gagal Dekripsi: Kunci Password Salah]', 'Sistem', '', false, 'BAD_KEY');
+        }
+      });
+    }
+
+    async function sendChatMessage(e) {
+      e.preventDefault();
+      initAudio();
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text || !roomRef) return;
+
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const encrypted = await encryptData(text);
+
+      roomRef.push({
+        sender: myName,
+        ciphertext: encrypted.ciphertext,
+        iv: encrypted.iv,
+        time: time,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+      });
+
+      input.value = '';
+    }
+
+    async function deriveAESKey(password, salt) {
+      const enc = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey(
+        "raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]
+      );
+      return crypto.subtle.deriveKey(
+        {
+          name: "PBKDF2",
+          salt: enc.encode("p2p_salt_" + salt),
+          iterations: 100000,
+          hash: "SHA-256"
+        },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"]
+      );
+    }
+
+    async function encryptData(plaintext) {
+      const enc = new TextEncoder();
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const encryptedBuffer = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        cryptoKey,
+        enc.encode(plaintext)
+      );
+      return {
+        ciphertext: bufferToBase64(encryptedBuffer),
+        iv: bufferToBase64(iv.buffer)
+      };
+    }
+
+    async function decryptData(ciphertextB64, ivB64) {
+      const ciphertextBuf = base64ToBuffer(ciphertextB64);
+      const ivBuf = base64ToBuffer(ivB64);
+      const decryptedBuffer = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: new Uint8Array(ivBuf) },
+        cryptoKey,
+        ciphertextBuf
+      );
+      return new TextDecoder().decode(decryptedBuffer);
+    }
+
+    function renderBubble(text, sender, time, isSelf, rawCipher) {
+      const container = document.getElementById('message-container');
+      const wrapper = document.createElement('div');
+      wrapper.className = `flex flex-col ${isSelf ? 'items-end' : 'items-start'}`;
+
+      const bubbleColor = isSelf ? 'bg-[#005c4b] text-slate-100' : 'bg-[#202c33] text-slate-100';
+      const cipherId = 'ciph-' + Math.random().toString(36).substring(2, 7);
+
+      wrapper.innerHTML = `
+        <div class="max-w-[80%] px-3 py-2 rounded-xl ${bubbleColor} shadow text-sm">
+          <div>${escapeHTML(text)}</div>
+          <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
+            <span>${time}</span>
+            ${isSelf ? '<i class="fa-solid fa-check-double text-[#53bdeb]"></i>' : ''}
+          </div>
+          <div class="mt-1 pt-1 border-t border-white/10 text-[9px] font-mono text-slate-400">
+            <button onclick="document.getElementById('${cipherId}').classList.toggle('hidden')" class="hover:underline">
+              Ciphertext
+            </button>
+            <div id="${cipherId}" class="hidden break-all mt-0.5 p-1 bg-black/30 rounded select-all">
+              ${rawCipher}
+            </div>
+          </div>
+        </div>
+      `;
+
+      container.appendChild(wrapper);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function bufferToBase64(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+    function base64ToBuffer(b64) {
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return bytes.buffer;
+    }
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+  </script>
+</body>
+</html>
