@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kompres & Resize Gambar Pro</title>
+    <title>Bulk Media Compressor Pro (WebView Safe)</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
     <style>
         :root {
             --bg-color: #0f172a;
@@ -35,7 +38,7 @@
 
         .container {
             width: 100%;
-            max-width: 600px;
+            max-width: 650px;
             display: flex;
             flex-direction: column;
             gap: 16px;
@@ -98,77 +101,146 @@
         .upload-area {
             border: 2px dashed var(--accent);
             border-radius: 10px;
-            padding: 20px;
+            padding: 24px;
             text-align: center;
             background: rgba(56, 189, 248, 0.03);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
         .btn-upload {
-            padding: 10px 20px;
+            padding: 12px 24px;
             background: var(--accent);
             color: #000;
             font-weight: 700;
             border-radius: 8px;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             cursor: pointer;
             display: inline-block;
         }
 
-        /* INPUT POLOS TANPA ACCEPT/MULTIPLE SEPERTI PROJEK BRANKAS */
         input[type="file"] {
             display: none;
         }
 
-        .btn-danger {
-            background-color: var(--danger);
-            color: #fff;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
+        .progress-bar-container {
+            width: 100%;
+            background-color: var(--bg-color);
+            border-radius: 6px;
+            height: 10px;
+            overflow: hidden;
+            display: none;
         }
 
-        .result-card {
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--accent);
+            transition: width 0.2s;
+        }
+
+        .status-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .summary-box {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+            padding: 12px;
             display: none;
             flex-direction: column;
-            gap: 12px;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
+            gap: 4px;
+            font-size: 0.85rem;
         }
 
-        .preview-img {
-            max-width: 100%;
-            max-height: 250px;
-            object-fit: contain;
+        .summary-box strong { color: var(--success); }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
             border-radius: 8px;
+            background-color: var(--accent);
+            color: #000;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-danger { background-color: var(--danger); color: #fff; }
+        .btn-success { background-color: var(--success); color: #000; }
+
+        .result-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            background: var(--bg-color);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .result-thumb {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            object-fit: cover;
             background: #000;
         }
 
-        .stats {
-            font-size: 0.85rem;
+        .result-info {
+            flex: 1;
             display: flex;
-            justify-content: space-between;
-            background: var(--bg-color);
-            padding: 10px;
-            border-radius: 8px;
+            flex-direction: column;
+            gap: 2px;
+            overflow: hidden;
         }
 
-        .btn-download {
-            display: block;
-            text-align: center;
-            padding: 12px;
-            background: var(--success);
+        .result-filename {
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .result-stats {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .result-save {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            background: var(--accent);
             color: #000;
             text-decoration: none;
             font-weight: 700;
-            border-radius: 8px;
         }
     </style>
 </head>
@@ -176,8 +248,8 @@
 
 <div class="container">
     <div class="header">
-        <h1>Kompres Gambar Pro</h1>
-        <p>Aman & Stabil untuk WebView Android</p>
+        <h1>Kompres Foto Massal (Bulk)</h1>
+        <p>Proses Banyak Foto Sekaligus • Aman WebView Android</p>
     </div>
 
     <div class="card">
@@ -186,7 +258,7 @@
                 <label for="formatSelect">Format Output</label>
                 <select id="formatSelect">
                     <option value="image/jpeg" selected>JPEG</option>
-                    <option value="image/webp">WebP</option>
+                    <option value="image/webp">WebP (Lebih Kecil)</option>
                     <option value="image/png">PNG</option>
                 </select>
             </div>
@@ -194,10 +266,10 @@
             <div class="form-group">
                 <label for="resizeMode">Maksimal Dimensi</label>
                 <select id="resizeMode">
-                    <option value="1280" selected>Max 1280px</option>
+                    <option value="1280" selected>Max 1280px (Rekomendasi)</option>
                     <option value="1920">Max 1920px (Full HD)</option>
-                    <option value="800">Max 800px</option>
-                    <option value="0">Ukuran Asli</option>
+                    <option value="800">Max 800px (Sangat Kecil)</option>
+                    <option value="0">Ukuran Asli (Tanpa Resize)</option>
                 </select>
             </div>
         </div>
@@ -208,111 +280,242 @@
         </div>
 
         <div class="upload-area">
-            <p id="fileStatus">Pilih foto dari galeri HP kamu</p>
-            <label class="btn-upload" for="fileInput">Pilih Foto</label>
-            <input type="file" id="fileInput" onchange="processSingleFile(this.files)">
+            <p>Pilih Beberapa Foto Sekaligus Dari Galeri HP Kamu</p>
+            <label class="btn-upload" for="fileInput">📁 Pilih Banyak Foto (Bulk)</label>
+            <input type="file" id="fileInput" multiple onchange="handleBulkFiles(this.files)">
+        </div>
+
+        <div class="progress-bar-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div id="statusText" class="status-text"></div>
+
+        <div id="summaryBox" class="summary-box">
+            <div>Total Foto Diproses: <strong id="totalCount">0 foto</strong></div>
+            <div>Ukuran Awal Total: <span id="totalOrig">0 MB</span></div>
+            <div>Ukuran Setelah Kompres: <strong id="totalComp">0 MB</strong></div>
+            <div>Hemat Memori: <strong id="totalSaved" class="result-save">0%</strong></div>
+        </div>
+
+        <div class="btn-group" id="actionGroup" style="display: none;">
+            <button class="btn btn-danger" onclick="clearQueue()">Hapus Semua</button>
+            <button class="btn btn-success" onclick="downloadAllZip()">Download Semua (.ZIP)</button>
         </div>
     </div>
 
-    <div class="result-card" id="resultCard">
-        <label>Hasil Kompresi:</label>
-        <img id="previewImg" class="preview-img" alt="Preview">
-        <div class="stats">
-            <span>Awal: <strong id="origSize">-</strong></span>
-            <span>Hasil: <strong id="compSize" style="color: var(--success);">-</strong></span>
-        </div>
-        <a id="downloadBtn" class="btn-download" download="foto_terkompresi.jpg">Download Hasil Foto</a>
-        <button class="btn-danger" onclick="resetAll()">Reset / Pilih Foto Lain</button>
+    <div class="card" id="resultCard" style="display: none;">
+        <label>Daftar Hasil Kompresi Foto:</label>
+        <div id="resultList" class="result-list"></div>
     </div>
 </div>
 
 <script>
-    function processSingleFile(files) {
+    let processedFiles = [];
+
+    async function handleBulkFiles(files) {
         if (!files || files.length === 0) return;
-        const file = files[0];
 
-        document.getElementById('fileStatus').innerText = "Memproses: " + file.name;
+        const fileList = Array.from(files);
 
-        // FileReader jauh lebih aman di Android WebView dibanding URL.createObjectURL
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const dataUrl = e.target.result;
-            compressDataUrl(dataUrl, file.size, file.name);
-        };
-        reader.onerror = function() {
-            alert("Gagal membaca file foto.");
-        };
-        reader.readAsDataURL(file);
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const statusText = document.getElementById('statusText');
+        const resultCard = document.getElementById('resultCard');
+        const summaryBox = document.getElementById('summaryBox');
+        const actionGroup = document.getElementById('actionGroup');
+
+        clearQueue();
+
+        resultCard.style.display = 'block';
+        progressContainer.style.display = 'block';
+        actionGroup.style.display = 'flex';
+        progressBar.style.width = '0%';
+
+        let totalOriginalSize = 0;
+        let totalCompressedSize = 0;
+
+        for (let i = 0; i < fileList.length; i++) {
+            const file = fileList[i];
+            statusText.innerText = `Memproses foto ${i + 1} dari ${fileList.length}: ${file.name}`;
+            totalOriginalSize += file.size;
+
+            try {
+                const dataUrl = await readFileAsDataURL(file);
+                const compressedResult = await compressDataUrl(dataUrl, file.name, file.size);
+
+                totalCompressedSize += compressedResult.bytes;
+
+                const itemData = {
+                    dataUrl: compressedResult.dataUrl,
+                    filename: compressedResult.filename,
+                    originalSize: file.size,
+                    compressedSize: compressedResult.bytes
+                };
+
+                processedFiles.push(itemData);
+                renderResultItem(itemData);
+
+            } catch (err) {
+                console.error("Gagal memproses " + file.name, err);
+            }
+
+            const pct = Math.round(((i + 1) / fileList.length) * 100);
+            progressBar.style.width = pct + '%';
+        }
+
+        statusText.innerText = `Selesai! ${processedFiles.length} foto berhasil dikompres.`;
+
+        // Update Summary
+        document.getElementById('totalCount').innerText = `${processedFiles.length} Foto`;
+        document.getElementById('totalOrig').innerText = formatSize(totalOriginalSize);
+        document.getElementById('totalComp').innerText = formatSize(totalCompressedSize);
+
+        const savedPercent = totalOriginalSize > 0 
+            ? (((totalOriginalSize - totalCompressedSize) / totalOriginalSize) * 100).toFixed(1)
+            : 0;
+            
+        document.getElementById('totalSaved').innerText = `${savedPercent}% (${formatSize(totalOriginalSize - totalCompressedSize)})`;
+        summaryBox.style.display = 'flex';
     }
 
-    function compressDataUrl(dataUrl, originalSize, filename) {
-        const mimeType = document.getElementById('formatSelect').value;
-        const maxDim = parseInt(document.getElementById('resizeMode').value);
-        const quality = parseInt(document.getElementById('qualSlider').value) / 100;
+    function readFileAsDataURL(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(e);
+            reader.readAsDataURL(file);
+        });
+    }
 
-        const img = new Image();
-        img.onload = function() {
-            let width = img.width;
-            let height = img.height;
+    function compressDataUrl(dataUrl, filename, originalSize) {
+        return new Promise((resolve) => {
+            const mimeType = document.getElementById('formatSelect').value;
+            const maxDim = parseInt(document.getElementById('resizeMode').value);
+            const quality = parseInt(document.getElementById('qualSlider').value) / 100;
 
-            if (maxDim > 0 && (width > maxDim || height > maxDim)) {
-                if (width > height) {
-                    height = Math.round((height * maxDim) / width);
-                    width = maxDim;
-                } else {
-                    width = Math.round((width * maxDim) / height);
-                    height = maxDim;
+            const img = new Image();
+            img.onload = function() {
+                let width = img.width;
+                let height = img.height;
+
+                if (maxDim > 0 && (width > maxDim || height > maxDim)) {
+                    if (width > height) {
+                        height = Math.round((height * maxDim) / width);
+                        width = maxDim;
+                    } else {
+                        width = Math.round((width * maxDim) / height);
+                        height = maxDim;
+                    }
                 }
-            }
 
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
 
-            const ctx = canvas.getContext('2d');
-            if (mimeType === 'image/jpeg') {
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(0, 0, width, height);
-            }
-            ctx.drawImage(img, 0, 0, width, height);
+                const ctx = canvas.getContext('2d');
+                if (mimeType === 'image/jpeg') {
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, width, height);
+                }
+                ctx.drawImage(img, 0, 0, width, height);
 
-            const compressedDataUrl = canvas.toDataURL(mimeType, quality);
+                const compressedDataUrl = canvas.toDataURL(mimeType, quality);
 
-            // Perkiraan ukuran byte Base64
-            const head = "data:" + mimeType + ";base64,";
-            const compressedBytes = Math.round((compressedDataUrl.length - head.length) * 3 / 4);
+                // Bersihkan canvas
+                canvas.width = 0;
+                canvas.height = 0;
 
-            document.getElementById('previewImg').src = compressedDataUrl;
-            document.getElementById('origSize').innerText = formatSize(originalSize);
-            document.getElementById('compSize').innerText = formatSize(compressedBytes);
+                const head = "data:" + mimeType + ";base64,";
+                const bytes = Math.round((compressedDataUrl.length - head.length) * 3 / 4);
 
-            const ext = mimeType.split('/')[1];
-            const cleanName = filename.substring(0, filename.lastIndexOf('.')) || filename;
-            const downloadBtn = document.getElementById('downloadBtn');
-            downloadBtn.href = compressedDataUrl;
-            downloadBtn.download = cleanName + "_min." + ext;
+                const ext = mimeType.split('/')[1];
+                const cleanName = filename.substring(0, filename.lastIndexOf('.')) || filename;
+                const newFilename = `${cleanName}_min.${ext}`;
 
-            document.getElementById('resultCard').style.display = 'flex';
-            document.getElementById('fileStatus').innerText = "Selesai mengompres!";
-        };
+                resolve({
+                    dataUrl: compressedDataUrl,
+                    filename: newFilename,
+                    bytes: bytes
+                });
+            };
 
-        img.onerror = function() {
-            alert("File yang dipilih bukan format gambar yang valid.");
-        };
+            img.onerror = function() {
+                resolve({
+                    dataUrl: dataUrl,
+                    filename: filename,
+                    bytes: originalSize
+                });
+            };
 
-        img.src = dataUrl;
+            img.src = dataUrl;
+        });
     }
 
-    function resetAll() {
-        document.getElementById('fileInput').value = '';
+    function renderResultItem(item) {
+        const resultList = document.getElementById('resultList');
+        const div = document.createElement('div');
+        div.className = 'result-item';
+
+        const savedPct = item.originalSize > 0 
+            ? (((item.originalSize - item.compressedSize) / item.originalSize) * 100).toFixed(0) 
+            : 0;
+
+        div.innerHTML = `
+            <img src="${item.dataUrl}" class="result-thumb" alt="preview">
+            <div class="result-info">
+                <div class="result-filename" title="${item.filename}">${item.filename}</div>
+                <div class="result-stats">
+                    ${formatSize(item.originalSize)} ➔ <strong>${formatSize(item.compressedSize)}</strong>
+                    <span class="result-save">(-${savedPct}%)</span>
+                </div>
+            </div>
+            <a href="${item.dataUrl}" download="${item.filename}" class="btn-sm">Download</a>
+        `;
+
+        resultList.appendChild(div);
+    }
+
+    function clearQueue() {
+        processedFiles = [];
+        document.getElementById('resultList').innerHTML = '';
+        document.getElementById('summaryBox').style.display = 'none';
+        document.getElementById('actionGroup').style.display = 'none';
         document.getElementById('resultCard').style.display = 'none';
-        document.getElementById('fileStatus').innerText = 'Pilih foto dari galeri HP kamu';
+        document.getElementById('progressContainer').style.display = 'none';
+        document.getElementById('statusText').innerText = '';
+        
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) fileInput.value = '';
     }
 
     function formatSize(bytes) {
         if (bytes < 1024) return bytes + ' B';
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    async function downloadAllZip() {
+        if (!window.JSZip || processedFiles.length === 0) return;
+
+        try {
+            const zip = new JSZip();
+            processedFiles.forEach(item => {
+                const base64Content = item.dataUrl.split(',')[1];
+                zip.file(item.filename, base64Content, { base64: true });
+            });
+
+            const base64Data = await zip.generateAsync({ type: 'base64' });
+            const dataUrl = 'data:application/zip;base64,' + base64Data;
+            
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = 'foto_massal_terkompresi.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } catch (err) {
+            alert('Gagal membuat file ZIP: ' + err.message);
+        }
     }
 </script>
 
