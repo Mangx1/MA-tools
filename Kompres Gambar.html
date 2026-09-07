@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Compressor & Resizer Massal</title>
+    <title>Bulk Media Compressor & Resizer Pro</title>
 
-    <!-- JSZip CDN untuk fitur Download Semua (ZIP) -->
+    <!-- JSZip CDN untuk Download Arsip ZIP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <style>
@@ -39,7 +39,7 @@
 
         .container {
             width: 100%;
-            max-width: 640px;
+            max-width: 680px;
             display: flex;
             flex-direction: column;
             gap: 16px;
@@ -118,7 +118,10 @@
             padding: 24px;
             text-align: center;
             background: rgba(56, 189, 248, 0.03);
-            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
             transition: background 0.2s;
         }
 
@@ -130,20 +133,34 @@
             font-size: 0.9rem;
             font-weight: 600;
             color: var(--text-main);
-            margin-bottom: 4px;
         }
 
-        .drop-zone span {
-            font-size: 0.75rem;
-            color: var(--text-muted);
+        .btn-upload-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-upload {
+            padding: 8px 14px;
+            background: var(--accent);
+            color: #000;
+            font-weight: 700;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
         }
 
         input[type="file"] {
             display: none;
         }
 
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
         .btn {
-            width: 100%;
+            flex: 1;
             padding: 12px;
             border: none;
             border-radius: 8px;
@@ -157,7 +174,7 @@
         }
 
         .btn:hover { background-color: var(--accent-hover); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-danger { background-color: var(--danger); color: #fff; }
         .btn-success { background-color: var(--success); color: #000; }
 
         .progress-bar-container {
@@ -176,6 +193,12 @@
             transition: width 0.2s;
         }
 
+        .status-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
         .summary-box {
             background: rgba(34, 197, 94, 0.1);
             border: 1px solid rgba(34, 197, 94, 0.3);
@@ -187,15 +210,13 @@
             font-size: 0.85rem;
         }
 
-        .summary-box strong {
-            color: var(--success);
-        }
+        .summary-box strong { color: var(--success); }
 
         .result-list {
             display: flex;
             flex-direction: column;
             gap: 10px;
-            max-height: 380px;
+            max-height: 400px;
             overflow-y: auto;
         }
 
@@ -259,9 +280,9 @@
 
 <div class="container">
     <div class="header">
-        <h1>Pengecil Ukuran Foto Massal</h1>
-        <p>Kompresi & Resize Foto Cepat Tanpa Merusak Ketajaman</p>
-        <span class="badge">Canvas Downsampling + EXIF Stripper</span>
+        <h1>Kompresi & Resize Foto Massal (Bulk)</h1>
+        <p>Auto-Target Ukuran File, Batch Processing & Download ZIP</p>
+        <span class="badge">Binary Search Target Compressor Engine</span>
     </div>
 
     <div class="card">
@@ -269,50 +290,77 @@
             <div class="form-group">
                 <label for="formatSelect">Format Output</label>
                 <select id="formatSelect">
-                    <option value="image/webp" selected>WebP (Sangat Kecil & Tajam)</option>
-                    <option value="image/jpeg">JPEG (Kompatibilitas Standar)</option>
-                    <option value="image/png">PNG (Tanpa Kompresi Hilang)</option>
+                    <option value="image/webp" selected>WebP (Ukuran Paling Kecil)</option>
+                    <option value="image/jpeg">JPEG (Kompatibilitas Formulir)</option>
+                    <option value="image/png">PNG (Transparan / Lossless)</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="resizeMode">Batas Resolusi Miring/Maksimal</label>
+                <label for="resizeMode">Batas Maksimal Dimensi</label>
                 <select id="resizeMode">
                     <option value="1920" selected>Max 1920px (Full HD)</option>
-                    <option value="1280">Max 1280px (Standar Formulir)</option>
-                    <option value="800">Max 800px (Kecil/Thumbnail)</option>
+                    <option value="1280">Max 1280px (Rekomendasi Web)</option>
+                    <option value="800">Max 800px (Kecil / Pasfoto)</option>
                     <option value="0">Ukuran Asli (Tanpa Resize)</option>
                 </select>
             </div>
         </div>
 
-        <div class="form-group">
-            <label>Tingkat Kualitas (Quality): <span id="qualVal">80%</span></label>
-            <input type="range" id="qualSlider" min="10" max="100" value="80" oninput="document.getElementById('qualVal').innerText = this.value + '%'">
+        <div class="grid-2">
+            <div class="form-group">
+                <label for="targetMode">Mode Kompresi Bulk</label>
+                <select id="targetMode" onchange="toggleModeSettings()">
+                    <option value="quality" selected>Berdasarkan Persen Kualitas</option>
+                    <option value="target_size">Otomatis Target Maksimal File (KB)</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="qualityBox">
+                <label>Kualitas Foto: <span id="qualVal">80%</span></label>
+                <input type="range" id="qualSlider" min="10" max="100" value="80" oninput="document.getElementById('qualVal').innerText = this.value + '%'">
+            </div>
+
+            <div class="form-group" id="targetSizeBox" style="display: none;">
+                <label for="targetKbInput">Target Ukuran Maksimal File per Foto</label>
+                <select id="targetKbInput">
+                    <option value="200" selected>Maksimal < 200 KB (Biasa untuk CPNS/Sekolah)</option>
+                    <option value="500">Maksimal < 500 KB (Standar Upload Web)</option>
+                    <option value="1000">Maksimal < 1 MB</option>
+                    <option value="100">Maksimal < 100 KB (Sangat Kecil)</option>
+                </select>
+            </div>
         </div>
 
-        <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
-            <p>Klik / Tarik Foto ke Sini (Bisa Banyak Foto)</p>
-            <span>Format pendukung: JPG, PNG, WebP, HEIC (tergantung browser)</span>
+        <div class="drop-zone">
+            <p>Pilih Banyak Foto atau Satu Folder Sekaligus</p>
+            <div class="btn-upload-group">
+                <label class="btn-upload" for="fileInput">Pilih Foto (Multiple File)</label>
+                <label class="btn-upload" for="folderInput">Upload 1 Folder</label>
+            </div>
             <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFiles(this.files)">
+            <input type="file" id="folderInput" accept="image/*" webkitdirectory directory onchange="handleFiles(this.files)">
         </div>
 
         <div class="progress-bar-container" id="progressContainer">
             <div class="progress-bar" id="progressBar"></div>
         </div>
+        <div id="statusText" class="status-text"></div>
 
         <div id="summaryBox" class="summary-box">
-            <div>Total Ukuran Awal: <span id="totalOrig">0 MB</span></div>
-            <div>Total Ukuran Hasil: <strong id="totalComp">0 MB</strong></div>
+            <div>Jumlah File Diproses: <strong id="totalCount">0 foto</strong></div>
+            <div>Ukuran Total Awal: <span id="totalOrig">0 MB</span></div>
+            <div>Ukuran Total Akhir: <strong id="totalComp">0 MB</strong></div>
             <div>Total Ruang Dihemat: <strong id="totalSaved" class="result-save">0%</strong></div>
         </div>
 
-        <button id="downloadZipBtn" class="btn btn-success" onclick="downloadAllZip()" style="display: none;">
-            Download Semua Foto (.ZIP)
-        </button>
+        <div class="btn-group" id="actionGroup" style="display: none;">
+            <button class="btn btn-danger" onclick="clearQueue()">Hapus Semua Queue</button>
+            <button id="downloadZipBtn" class="btn btn-success" onclick="downloadAllZip()">Download Semua (.ZIP)</button>
+        </div>
     </div>
 
     <div class="card" id="resultCard" style="display: none;">
-        <label>Daftar Hasil Kompresi:</label>
+        <label>Daftar Hasil Kompresi Massal:</label>
         <div id="resultList" class="result-list"></div>
     </div>
 </div>
@@ -320,36 +368,59 @@
 <script>
     let processedFiles = [];
 
+    function toggleModeSettings() {
+        const mode = document.getElementById('targetMode').value;
+        document.getElementById('qualityBox').style.display = (mode === 'quality') ? 'flex' : 'none';
+        document.getElementById('targetSizeBox').style.display = (mode === 'target_size') ? 'flex' : 'none';
+    }
+
     async function handleFiles(files) {
         if (!files || files.length === 0) return;
 
+        // Filter hanya file gambar
+        const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+        if (imageFiles.length === 0) {
+            alert('Tidak ditemukan file gambar dalam pilihan.');
+            return;
+        }
+
         const progressContainer = document.getElementById('progressContainer');
         const progressBar = document.getElementById('progressBar');
+        const statusText = document.getElementById('statusText');
         const resultCard = document.getElementById('resultCard');
         const resultList = document.getElementById('resultList');
         const summaryBox = document.getElementById('summaryBox');
-        const downloadZipBtn = document.getElementById('downloadZipBtn');
+        const actionGroup = document.getElementById('actionGroup');
 
-        processedFiles = [];
-        resultList.innerHTML = '';
+        clearQueue();
+
         resultCard.style.display = 'block';
         progressContainer.style.display = 'block';
+        actionGroup.style.display = 'flex';
         progressBar.style.width = '0%';
-        summaryBox.style.display = 'none';
-        downloadZipBtn.style.display = 'none';
 
         const mimeType = document.getElementById('formatSelect').value;
         const maxDim = parseInt(document.getElementById('resizeMode').value);
-        const quality = parseInt(document.getElementById('qualSlider').value) / 100;
+        const mode = document.getElementById('targetMode').value;
+        const targetKB = parseInt(document.getElementById('targetKbInput').value);
+        const defaultQuality = parseInt(document.getElementById('qualSlider').value) / 100;
 
         let totalOriginalSize = 0;
         let totalCompressedSize = 0;
 
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
+        for (let i = 0; i < imageFiles.length; i++) {
+            const file = imageFiles[i];
+            statusText.innerText = `Memproses foto ${i + 1} dari ${imageFiles.length}: ${file.name}`;
+            
             totalOriginalSize += file.size;
 
-            const compressedBlob = await compressImage(file, maxDim, mimeType, quality);
+            let compressedBlob;
+            if (mode === 'target_size') {
+                compressedBlob = await compressToTargetKB(file, maxDim, mimeType, targetKB);
+            } else {
+                compressedBlob = await compressImage(file, maxDim, mimeType, defaultQuality);
+            }
+
             totalCompressedSize += compressedBlob.size;
 
             const ext = mimeType.split('/')[1];
@@ -367,24 +438,55 @@
             processedFiles.push(itemData);
             renderResultItem(itemData);
 
-            const pct = Math.round(((i + 1) / files.length) * 100);
+            const pct = Math.round(((i + 1) / imageFiles.length) * 100);
             progressBar.style.width = pct + '%';
         }
 
-        // Update Summary Stat
+        statusText.innerText = `Selesai memproses ${imageFiles.length} foto massal.`;
+
+        // Update Summary
+        document.getElementById('totalCount').innerText = `${imageFiles.length} Foto`;
         document.getElementById('totalOrig').innerText = formatSize(totalOriginalSize);
         document.getElementById('totalComp').innerText = formatSize(totalCompressedSize);
-        
+
         const savedPercent = totalOriginalSize > 0 
             ? (((totalOriginalSize - totalCompressedSize) / totalOriginalSize) * 100).toFixed(1)
             : 0;
             
         document.getElementById('totalSaved').innerText = `${savedPercent}% (${formatSize(totalOriginalSize - totalCompressedSize)})`;
         summaryBox.style.display = 'flex';
+    }
 
-        if (processedFiles.length > 1 && window.JSZip) {
-            downloadZipBtn.style.display = 'block';
+    // Algoritma Binary Search untuk memaksa ukuran di bawah Target KB
+    async function compressToTargetKB(file, maxDim, mimeType, targetKB) {
+        let minQ = 0.05;
+        let maxQ = 0.95;
+        let bestBlob = null;
+        const targetBytes = targetKB * 1024;
+
+        // Coba kompresi awal
+        bestBlob = await compressImage(file, maxDim, mimeType, maxQ);
+        if (bestBlob.size <= targetBytes) return bestBlob;
+
+        // Iterasi binary search 5-6 kali untuk menemukan kualitas paling presisi
+        for (let step = 0; step < 6; step++) {
+            const currentQ = (minQ + maxQ) / 2;
+            const testBlob = await compressImage(file, maxDim, mimeType, currentQ);
+
+            if (testBlob.size <= targetBytes) {
+                bestBlob = testBlob;
+                minQ = currentQ; // Coba naikkan kualitas sedikit
+            } else {
+                maxQ = currentQ; // Turunkan kualitas
+            }
         }
+
+        // Jika masih terlalu besar, turunkan dimensi resolusi otomatis
+        if (bestBlob.size > targetBytes && maxDim !== 800) {
+            bestBlob = await compressImage(file, 800, mimeType, 0.6);
+        }
+
+        return bestBlob;
     }
 
     function compressImage(file, maxDim, mimeType, quality) {
@@ -394,7 +496,6 @@
                 let width = img.width;
                 let height = img.height;
 
-                // Hitung Downsampling Rasio
                 if (maxDim > 0 && (width > maxDim || height > maxDim)) {
                     if (width > height) {
                         height = Math.round((height * maxDim) / width);
@@ -413,7 +514,6 @@
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
 
-                // Bersihkan latar belakang transparan jika ekspor ke JPEG
                 if (mimeType === 'image/jpeg') {
                     ctx.fillStyle = '#FFFFFF';
                     ctx.fillRect(0, 0, width, height);
@@ -453,6 +553,19 @@
         resultList.appendChild(div);
     }
 
+    function clearQueue() {
+        processedFiles.forEach(item => URL.revokeObjectURL(item.url));
+        processedFiles = [];
+        document.getElementById('resultList').innerHTML = '';
+        document.getElementById('summaryBox').style.display = 'none';
+        document.getElementById('actionGroup').style.display = 'none';
+        document.getElementById('resultCard').style.display = 'none';
+        document.getElementById('progressContainer').style.display = 'none';
+        document.getElementById('statusText').innerText = '';
+        document.getElementById('fileInput').value = '';
+        document.getElementById('folderInput').value = '';
+    }
+
     function formatSize(bytes) {
         if (bytes < 1024) return bytes + ' B';
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -470,7 +583,7 @@
         const zipBlob = await zip.generateAsync({ type: 'blob' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(zipBlob);
-        a.download = 'foto_terkompresi.zip';
+        a.download = 'foto_massal_terkompresi.zip';
         a.click();
         URL.revokeObjectURL(a.href);
     }
