@@ -121,7 +121,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             transition: background 0.2s;
         }
 
@@ -137,17 +137,19 @@
 
         .btn-upload-group {
             display: flex;
+            justify-content: center;
             gap: 10px;
         }
 
         .btn-upload {
-            padding: 8px 14px;
+            padding: 10px 20px;
             background: var(--accent);
             color: #000;
             font-weight: 700;
-            border-radius: 6px;
-            font-size: 0.8rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
             cursor: pointer;
+            display: inline-block;
         }
 
         input[type="file"] {
@@ -323,22 +325,21 @@
             <div class="form-group" id="targetSizeBox" style="display: none;">
                 <label for="targetKbInput">Target Ukuran Maksimal File per Foto</label>
                 <select id="targetKbInput">
-                    <option value="200" selected>Maksimal < 200 KB (Biasa untuk CPNS/Sekolah)</option>
-                    <option value="500">Maksimal < 500 KB (Standar Upload Web)</option>
-                    <option value="1000">Maksimal < 1 MB</option>
-                    <option value="100">Maksimal < 100 KB (Sangat Kecil)</option>
+                    <option value="200" selected>Maksimal &lt; 200 KB (Biasa untuk CPNS/Sekolah)</option>
+                    <option value="500">Maksimal &lt; 500 KB (Standar Upload Web)</option>
+                    <option value="1000">Maksimal &lt; 1 MB</option>
+                    <option value="100">Maksimal &lt; 100 KB (Sangat Kecil)</option>
                 </select>
             </div>
         </div>
 
         <div class="drop-zone">
-            <p>Pilih Banyak Foto atau Satu Folder Sekaligus</p>
+            <p>Pilih Banyak Foto Sekaligus Dari Galeri / File Manager</p>
             <div class="btn-upload-group">
-                <label class="btn-upload" for="fileInput">Pilih Foto (Multiple File)</label>
-                <label class="btn-upload" for="folderInput">Upload 1 Folder</label>
+                <label class="btn-upload" for="fileInput">📁 Pilih Foto (Multiple File)</label>
             </div>
+            <!-- WEBVIEW SAFE INPUT: Tanpa webkitdirectory untuk mencegah Force Close -->
             <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFiles(this.files)">
-            <input type="file" id="folderInput" accept="image/*" webkitdirectory directory onchange="handleFiles(this.files)">
         </div>
 
         <div class="progress-bar-container" id="progressContainer">
@@ -378,7 +379,7 @@
         if (!files || files.length === 0) return;
 
         // Filter hanya file gambar
-        const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+        const imageFiles = Array.from(files).filter(f => f.type && f.type.startsWith('image/'));
         if (imageFiles.length === 0) {
             alert('Tidak ditemukan file gambar dalam pilihan.');
             return;
@@ -388,7 +389,6 @@
         const progressBar = document.getElementById('progressBar');
         const statusText = document.getElementById('statusText');
         const resultCard = document.getElementById('resultCard');
-        const resultList = document.getElementById('resultList');
         const summaryBox = document.getElementById('summaryBox');
         const actionGroup = document.getElementById('actionGroup');
 
@@ -468,8 +468,8 @@
         bestBlob = await compressImage(file, maxDim, mimeType, maxQ);
         if (bestBlob.size <= targetBytes) return bestBlob;
 
-        // Iterasi binary search 5-6 kali untuk menemukan kualitas paling presisi
-        for (let step = 0; step < 6; step++) {
+        // Iterasi binary search 5 kali untuk menemukan kualitas paling presisi
+        for (let step = 0; step < 5; step++) {
             const currentQ = (minQ + maxQ) / 2;
             const testBlob = await compressImage(file, maxDim, mimeType, currentQ);
 
@@ -522,10 +522,16 @@
                 ctx.drawImage(img, 0, 0, width, height);
 
                 canvas.toBlob((blob) => {
+                    // Releasing Canvas RAM Memory buffer for WebView
+                    canvas.width = 0;
+                    canvas.height = 0;
                     resolve(blob);
                 }, mimeType, quality);
 
                 URL.revokeObjectURL(img.src);
+            };
+            img.onerror = () => {
+                resolve(file); // Fallback jika gagal load
             };
             img.src = URL.createObjectURL(file);
         });
@@ -536,7 +542,9 @@
         const div = document.createElement('div');
         div.className = 'result-item';
 
-        const savedPct = (((item.originalSize - item.compressedSize) / item.originalSize) * 100).toFixed(0);
+        const savedPct = item.originalSize > 0 
+            ? (((item.originalSize - item.compressedSize) / item.originalSize) * 100).toFixed(0) 
+            : 0;
 
         div.innerHTML = `
             <img src="${item.url}" class="result-thumb" alt="preview">
@@ -554,7 +562,9 @@
     }
 
     function clearQueue() {
-        processedFiles.forEach(item => URL.revokeObjectURL(item.url));
+        processedFiles.forEach(item => {
+            if (item.url) URL.revokeObjectURL(item.url);
+        });
         processedFiles = [];
         document.getElementById('resultList').innerHTML = '';
         document.getElementById('summaryBox').style.display = 'none';
@@ -562,8 +572,9 @@
         document.getElementById('resultCard').style.display = 'none';
         document.getElementById('progressContainer').style.display = 'none';
         document.getElementById('statusText').innerText = '';
-        document.getElementById('fileInput').value = '';
-        document.getElementById('folderInput').value = '';
+        
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) fileInput.value = '';
     }
 
     function formatSize(bytes) {
@@ -575,17 +586,25 @@
     async function downloadAllZip() {
         if (!window.JSZip || processedFiles.length === 0) return;
 
-        const zip = new JSZip();
-        processedFiles.forEach(item => {
-            zip.file(item.filename, item.blob);
-        });
+        try {
+            const zip = new JSZip();
+            processedFiles.forEach(item => {
+                zip.file(item.filename, item.blob);
+            });
 
-        const zipBlob = await zip.generateAsync({ type: 'blob' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(zipBlob);
-        a.download = 'foto_massal_terkompresi.zip';
-        a.click();
-        URL.revokeObjectURL(a.href);
+            // Menggunakan Base64 Data URL agar ramah dan tidak crash di WebView Android
+            const base64Data = await zip.generateAsync({ type: 'base64' });
+            const dataUrl = 'data:application/zip;base64,' + base64Data;
+            
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = 'foto_massal_terkompresi.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } catch (err) {
+            alert('Gagal membuat ZIP: ' + err.message);
+        }
     }
 </script>
 
