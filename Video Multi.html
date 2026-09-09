@@ -1,0 +1,1901 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>MA-Universal Studio Suite v5.2 (Real-Sync Fix)</title>
+
+  <!-- HLS Engine -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <!-- Shaka Player Engine (DASH & DRM Support) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.compiled.js"></script>
+  <!-- MP3 Encoder for WebAudio -->
+  <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+
+  <style>
+    :root {
+      --bg-main: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-inner: #0f172a;
+      --bg-card-hover: #334155;
+      --accent-primary: #10b981;
+      --accent-hover: #059669;
+      --accent-cyan: #06b6d4;
+      --accent-amber: #ffca28;
+      --accent-orange: #f97316;
+      --accent-red: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+      
+      --safe-top: max(env(safe-area-inset-top, 0px), 36px);
+      --safe-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding-top: calc(var(--safe-top) + 10px);
+      padding-bottom: calc(var(--safe-bottom) + 12px);
+      overflow-x: hidden;
+    }
+
+    header {
+      background-color: rgba(30, 41, 59, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 16px;
+      margin-top: calc(-1 * (var(--safe-top) + 10px));
+      padding-top: calc(var(--safe-top) + 10px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-cyan));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 16px;
+      color: #000;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    .badge {
+      font-size: 10px;
+      background: var(--border-color);
+      color: var(--accent-cyan);
+      padding: 3px 7px;
+      border-radius: 6px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    main {
+      flex: 1;
+      padding: 14px;
+      max-width: 850px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .source-tabs-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .source-tabs-wrapper::-webkit-scrollbar { display: none; }
+
+    .source-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-card);
+      padding: 5px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      min-width: max-content;
+    }
+
+    .source-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 40px;
+      white-space: nowrap;
+    }
+
+    .source-tab-btn.active {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
+      color: #000;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .player-wrapper {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .player-wrapper:fullscreen,
+    .player-wrapper:-webkit-full-screen {
+      width: 100vw !important;
+      height: 100vh !important;
+      border-radius: 0 !important;
+      border: none !important;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    video::cue {
+      background-color: rgba(0, 0, 0, 0.75);
+      color: #ffffff;
+      font-size: 16px;
+      font-family: sans-serif;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+    }
+
+    .subtitle-overlay {
+      position: absolute;
+      bottom: 12%;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      color: #ffffff;
+      background-color: rgba(0, 0, 0, 0.75);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      pointer-events: none;
+      max-width: 90%;
+      line-height: 1.3;
+      display: none;
+      z-index: 20;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+      transition: all 0.1s ease;
+    }
+
+    .btn-fullscreen-icon {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(15, 23, 42, 0.5);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 25;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+      opacity: 0.7;
+    }
+
+    .btn-fullscreen-icon:hover, .btn-fullscreen-icon:active {
+      opacity: 1;
+      background: rgba(15, 23, 42, 0.85);
+      transform: scale(1.05);
+    }
+
+    .btn-fullscreen-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .loop-viewport {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+
+    .loop-viewport video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loop-viewport video.active {
+      opacity: 1;
+      pointer-events: auto;
+      z-index: 2;
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-group label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .input-field, select.input-field {
+      background-color: var(--bg-main);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      width: 100%;
+      user-select: text;
+    }
+
+    .input-field:focus {
+      border-color: var(--accent-primary);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .btn, .btn-label {
+      appearance: none;
+      border: none;
+      background-color: var(--bg-card-hover);
+      color: var(--text-main);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      min-height: 42px;
+      touch-action: manipulation;
+      width: 100%;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
+      color: #000;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-vlc {
+      background: linear-gradient(135deg, var(--accent-orange), #c2410c);
+      color: #fff;
+      font-weight: 800;
+      box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3);
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      min-height: 34px;
+      font-size: 12px;
+      width: auto;
+    }
+
+    .btn:active, .btn-label:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    input[type="file"] {
+      display: none !important;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    input[type="color"] {
+      border: none;
+      width: 100%;
+      height: 38px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: var(--bg-main);
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      background: var(--bg-main);
+      cursor: pointer;
+      text-align: center;
+      gap: 6px;
+    }
+
+    .file-input-wrapper:hover {
+      border-color: var(--accent-cyan);
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+    }
+
+    .info-item {
+      background-color: var(--bg-main);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .info-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .info-value {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      word-break: break-word;
+    }
+
+    .status-banner {
+      background-color: rgba(6, 182, 212, 0.12);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-main);
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    .time-display {
+      font-family: monospace;
+      font-size: 13px;
+      color: var(--accent-cyan);
+      flex: 1;
+      text-align: right;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: var(--bg-main);
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-primary));
+      transition: width 0.1s linear;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(6, 182, 212, 0.3);
+      border-top-color: var(--accent-cyan);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hidden { display: none !important; }
+
+    .toast {
+      position: fixed;
+      bottom: calc(var(--safe-bottom) + 16px);
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background-color: #1e293b;
+      color: #fff;
+      border: 1px solid var(--accent-primary);
+      padding: 10px 18px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">MA</div>
+      <div class="brand-title">MA-Universal Studio Suite</div>
+    </div>
+    <span class="badge">v5.2 Real-Sync</span>
+  </header>
+
+  <main>
+    <!-- Tab Navigasi -->
+    <div class="source-tabs-wrapper">
+      <div class="source-tabs">
+        <button class="source-tab-btn active" onclick="switchMainTab('player', event)">📺 Universal Stream Player</button>
+        <button class="source-tab-btn" onclick="switchMainTab('loop', event)">🔁 Zero-Delay Loop</button>
+        <button class="source-tab-btn" onclick="switchMainTab('v2a', event)">🎵 Video ke Audio</button>
+        <button class="source-tab-btn" onclick="switchMainTab('a2v', event)">🎬 Gambar + Audio ke Video</button>
+        <button class="source-tab-btn" onclick="switchMainTab('trim', event)">✂️ Pemotong Video</button>
+      </div>
+    </div>
+
+    <!-- MODUL 1: UNIVERSAL STREAM PLAYER V5 -->
+    <div id="panelPlayer" style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="player-wrapper" id="playerWrapper">
+        <button class="btn-fullscreen-icon" onclick="toggleContainerFullscreen()" title="Layar Penuh">
+          <svg viewBox="0 0 24 24">
+            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+          </svg>
+        </button>
+        <video id="videoPlayer" controls playsinline></video>
+        <div id="subtitleOverlay" class="subtitle-overlay"></div>
+      </div>
+
+      <div class="status-banner hidden" id="statusBanner">
+        <div class="spinner"></div>
+        <span id="statusText">Memuat stream...</span>
+      </div>
+
+      <div class="source-tabs" style="margin-top: -4px;">
+        <button class="source-tab-btn active" onclick="switchPlayerSubTab('stream', event)">Single Stream Link</button>
+        <button class="source-tab-btn" onclick="switchPlayerSubTab('local', event)">File Video Lokal</button>
+        <button class="source-tab-btn" onclick="switchPlayerSubTab('srt', event)">Pengaturan Subtitle SRT</button>
+      </div>
+
+      <!-- PANEL STREAM -->
+      <div class="card" id="playerSubStream">
+        <div class="input-group">
+          <label>URL STREAM (HLS .m3u8, DASH .mpd, Direct MP4/MKV)</label>
+          <div class="input-row">
+            <input type="url" id="streamUrlInput" class="input-field" placeholder="https://domain.com/stream.m3u8">
+            <button class="btn btn-primary" style="width: auto;" onclick="playSingleUrl()">Putar Web</button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>OPSI STREAM ALTERNATIF (NATIVE ENGINE):</label>
+          <button class="btn btn-vlc" onclick="openInVlcApp()">
+            🎬 Buka & Putar Langsung di Aplikasi VLC (Bypass Semua CORS)
+          </button>
+        </div>
+
+        <div class="input-group">
+          <label>DRM LICENSE SERVER URL (Opsional / Widevine)</label>
+          <input type="url" id="drmLicenseInput" class="input-field" placeholder="https://license.domain.com/widevine">
+        </div>
+      </div>
+
+      <!-- PANEL LOKAL -->
+      <div class="card hidden" id="playerSubLocal">
+        <div class="input-group">
+          <label>PILIH FILE VIDEO LOKAL (MP4, MKV, WebM, MOV, TS)</label>
+          <label for="localVideoInput" class="btn-label btn-primary">
+            📁 Pilih Video dari Galeri / File
+          </label>
+          <input type="file" id="localVideoInput" accept="video/*, .mp4, .mkv, .webm, .mov, .ts, .mkv, .flv" onchange="playLocalVideo(event)">
+        </div>
+      </div>
+
+      <!-- PANEL SUBTITLE SRT -->
+      <div class="card hidden" id="playerSubSrt">
+        <div class="input-group">
+          <label>UNGGAH FILE SUBTITLE (.SRT)</label>
+          <label for="srtFileInput" class="btn-label btn-primary">
+            💬 Unggah File Subtitle (.srt)
+          </label>
+          <input type="file" id="srtFileInput" accept=".srt, .txt, text/plain, text/vtt, application/x-subrip" onchange="loadSrtFromFile(event)">
+        </div>
+
+        <div class="input-group">
+          <label>ATAU MASUKKAN URL SUBTITLE (.SRT)</label>
+          <div class="input-row">
+            <input type="url" id="srtUrlInput" class="input-field" placeholder="https://domain.com/subtitles.srt">
+            <button class="btn" style="width: auto;" onclick="loadSrtFromUrl()">Muat SRT</button>
+          </div>
+        </div>
+
+        <div class="card" style="background: var(--bg-main); padding: 12px; border-radius: 12px;">
+          <div class="input-group">
+            <label>DELAY SUBTITLE (SINKRONISASI DETIK): <span id="srtDelayVal" style="color:var(--accent-amber);">0.0s</span></label>
+            <div class="input-row" style="align-items: center;">
+              <button class="btn btn-small" onclick="adjustSrtDelay(-1.0)">-1s</button>
+              <button class="btn btn-small" onclick="adjustSrtDelay(-0.1)">-0.1s</button>
+              <input type="number" id="srtDelayInput" class="input-field" step="0.1" value="0.0" style="text-align: center;" onchange="setSrtDelay(parseFloat(this.value))">
+              <button class="btn btn-small" onclick="adjustSrtDelay(0.1)">+0.1s</button>
+              <button class="btn btn-small" onclick="adjustSrtDelay(1.0)">+1s</button>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+            <div class="input-group">
+              <label>UKURAN FONT: <span id="srtSizeVal">16px</span></label>
+              <input type="range" id="srtSizeInput" min="12" max="36" value="16" oninput="updateSrtStyle()" style="accent-color:var(--accent-primary); height:24px;">
+            </div>
+            <div class="input-group">
+              <label>TRANSPARANSI BG: <span id="srtBgAlphaVal">75%</span></label>
+              <input type="range" id="srtBgAlphaInput" min="0" max="100" value="75" oninput="updateSrtStyle()" style="accent-color:var(--accent-primary); height:24px;">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+            <div class="input-group">
+              <label>WARNA TEKS SUBTITLE</label>
+              <input type="color" id="srtTextColorInput" value="#ffffff" onchange="updateSrtStyle()">
+            </div>
+            <div class="input-group">
+              <label>WARNA BACKGROUND</label>
+              <input type="color" id="srtBgColorInput" value="#000000" onchange="updateSrtStyle()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MEDIA INFO GRID -->
+      <div class="card">
+        <div style="font-size: 12px; font-weight: 800; color: var(--accent-cyan); display: flex; align-items: center; gap: 6px;">
+          <span>ℹ️</span> INFORMASI MEDIA VIDEO LENGKAP
+        </div>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Resolusi Video</span>
+            <span class="info-value" id="infoResolution">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Aspect Ratio</span>
+            <span class="info-value" id="infoAspectRatio">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Durasi Total</span>
+            <span class="info-value" id="infoDuration">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Tipe / Container</span>
+            <span class="info-value" id="infoContainer">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Engine Player</span>
+            <span class="info-value" id="infoEngine">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Status Subtitle</span>
+            <span class="info-value" id="infoSrtStatus">Nonaktif</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODUL 2: ZERO-DELAY LOOP DUPLICATOR -->
+    <div id="panelLoop" class="hidden" style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="loop-viewport">
+        <video id="loopV1" class="active" playsinline webkit-playsinline></video>
+        <video id="loopV2" playsinline webkit-playsinline></video>
+      </div>
+
+      <div class="controls-bar">
+        <button class="btn btn-primary" id="btnToggleLoopPlay" style="width: auto; padding: 8px 16px; min-height: 36px;" disabled onclick="toggleLoopPlay()">▶ Putar</button>
+        <div class="time-display" id="loopTimeDisplay">00:00 / 00:00</div>
+      </div>
+
+      <div class="card">
+        <div style="font-size: 14px; font-weight: 800; color: var(--accent-cyan);">⚡ Duplikasi Durasi Video Seamless (Zero-Delay)</div>
+        
+        <label for="loopFileInput" class="file-input-wrapper">
+          <span style="font-size: 13px; font-weight: 700; color: var(--accent-cyan);">📁 Pilih File Video dari HP</span>
+          <span id="loopFileName" style="font-size: 11px; color: var(--text-muted);">Belum ada file dipilih</span>
+        </label>
+        <input type="file" id="loopFileInput" accept="video/*" onchange="handleLoopFile(event)">
+
+        <div class="grid-2" style="margin-top: 4px;">
+          <div>
+            <label for="loopCountSelect">Jumlah Duplikasi Pengulangan:</label>
+            <select id="loopCountSelect" class="input-field">
+              <option value="2">2x Pengulangan</option>
+              <option value="3" selected>3x Pengulangan</option>
+              <option value="5">5x Pengulangan</option>
+              <option value="10">10x Pengulangan</option>
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; justify-content: flex-end;">
+            <button class="btn btn-primary" id="btnApplyLoop" disabled onclick="applyLoopDuplication()">⚡ Terapkan Seamless Duplikasi</button>
+            <button class="btn" id="btnExportLoop" disabled onclick="exportLoopVideo()" style="background: var(--accent-cyan); color: #000;">📥 Export & Download Hasil Loop</button>
+          </div>
+        </div>
+
+        <div id="loopProgressBox" class="hidden" style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+            <span id="loopStatusMsg">Sedang memproses loop...</span>
+            <span id="loopPercent">0%</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="loopProgressBar"></div>
+          </div>
+        </div>
+
+        <div id="loopResultCard" class="hidden" style="text-align: center; margin-top: 6px;">
+          <a id="loopDownloadBtn" class="btn btn-primary" href="#" download="looped_video.webm">💾 Download Video Hasil Loop</a>
+        </div>
+
+        <div id="loopStatusText" style="font-size: 11px; color: var(--accent-cyan); text-align: center;">Pilih file video terlebih dahulu.</div>
+      </div>
+    </div>
+
+    <!-- MODUL 3: VIDEO TO AUDIO CONVERTER -->
+    <div id="panelV2a" class="hidden" style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="card">
+        <div style="font-size: 14px; font-weight: 800; color: var(--accent-cyan);">🎵 Konversi Video ke Audio Ultra-Cepat</div>
+        
+        <label for="v2aFileInput" class="file-input-wrapper">
+          <span style="font-size: 13px; font-weight: 700; color: var(--accent-cyan);">📁 Pilih File Video untuk Diekstrak</span>
+          <span id="v2aFileName" style="font-size: 11px; color: var(--text-muted);">Belum ada file video dipilih</span>
+        </label>
+        <input type="file" id="v2aFileInput" accept="video/*" onchange="handleV2aFile(event)">
+
+        <div class="grid-2">
+          <div>
+            <label for="v2aFormatSelect">Format Audio Output:</label>
+            <select id="v2aFormatSelect" class="input-field">
+              <option value="mp3">MP3 (Standard Kompatibel)</option>
+              <option value="wav">WAV (Lossless PCM Original Quality)</option>
+              <option value="m4a">M4A / AAC (High Quality Mobile)</option>
+            </select>
+          </div>
+          <div style="display: flex; align-items: flex-end;">
+            <button class="btn btn-primary" id="btnExtractAudio" disabled onclick="processVideoToAudio()">⚡ Ekstrak Audio Sekarang</button>
+          </div>
+        </div>
+
+        <div id="v2aProgressBox" class="hidden" style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+            <span id="v2aStatusMsg">Sedang mendekode audio...</span>
+            <span id="v2aPercent">0%</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="v2aProgressBar"></div>
+          </div>
+        </div>
+
+        <div id="v2aResultCard" class="hidden" style="text-align: center; margin-top: 6px;">
+          <audio id="v2aAudioPreview" controls style="width: 100%; margin-bottom: 10px;"></audio>
+          <a id="v2aDownloadBtn" class="btn btn-primary" href="#" download="audio_extracted">📥 Download File Audio</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODUL 4: AUDIO + GAMBAR KE VIDEO -->
+    <div id="panelA2v" class="hidden" style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="card">
+        <div style="font-size: 14px; font-weight: 800; color: var(--accent-cyan);">🎬 Gabungkan Gambar + Audio Jadi Video</div>
+        
+        <div class="grid-2">
+          <label for="a2vImgInput" class="file-input-wrapper">
+            <span style="font-size: 12px; font-weight: 700; color: var(--accent-cyan);">🖼️ Pilih Gambar (Bisa Banyak)</span>
+            <span id="a2vImgCount" style="font-size: 11px; color: var(--text-muted);">0 Gambar dipilih</span>
+          </label>
+          <input type="file" id="a2vImgInput" accept="image/*" multiple onchange="handleA2vImages(event)">
+
+          <label for="a2vAudioInput" class="file-input-wrapper">
+            <span style="font-size: 12px; font-weight: 700; color: var(--accent-cyan);">🎵 Pilih File Audio (MP3/WAV/M4A)</span>
+            <span id="a2vAudioName" style="font-size: 11px; color: var(--text-muted);">Belum ada audio dipilih</span>
+          </label>
+          <input type="file" id="a2vAudioInput" accept="audio/*" onchange="handleA2vAudio(event)">
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label for="a2vDurationPerImg">Durasi per Gambar (Detik):</label>
+            <input type="number" id="a2vDurationPerImg" class="input-field" value="3" min="1" max="60">
+          </div>
+          <div style="display: flex; align-items: flex-end;">
+            <button class="btn btn-primary" id="btnRenderA2v" disabled onclick="renderAudioImageToVideo()">✨ Process & Render Video</button>
+          </div>
+        </div>
+
+        <div id="a2vProgressBox" class="hidden" style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+            <span id="a2vStatusMsg">Sedang merender video...</span>
+            <span id="a2vPercent">0%</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="a2vProgressBar"></div>
+          </div>
+        </div>
+
+        <div id="a2vResultCard" class="hidden" style="text-align: center; margin-top: 6px;">
+          <video id="a2vVideoPreview" controls style="width: 100%; border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--border-color);"></video>
+          <a id="a2vDownloadBtn" class="btn btn-primary" href="#" download="slideshow_video.webm">📥 Download File Video</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODUL 5: PEMOTONG VIDEO (FIXED SINKRONISASI 100%) -->
+    <div id="panelTrim" class="hidden" style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="card">
+        <div style="font-size: 14px; font-weight: 800; color: var(--accent-cyan);">✂️ Potong Video — 60 FPS / Hardware Acceleration</div>
+        
+        <label for="trimFileInput" class="file-input-wrapper">
+          <span style="font-size: 13px; font-weight: 700; color: var(--accent-cyan);">📁 Pilih File Video yang Ingin Dipotong</span>
+          <span id="trimFileName" style="font-size: 11px; color: var(--text-muted);">Belum ada file dipilih</span>
+        </label>
+        <input type="file" id="trimFileInput" accept="video/*" onchange="handleTrimFile(event)">
+
+        <video id="trimPreviewPlayer" controls style="width: 100%; border-radius: 10px; display: none; border: 1px solid var(--border-color); aspect-ratio: 16/9; background: #000;"></video>
+
+        <div class="grid-2">
+          <div>
+            <label for="trimStartTime">Waktu Mulai (Detik):</label>
+            <input type="number" id="trimStartTime" class="input-field" value="0" min="0" step="0.1" onchange="previewTrimStart()">
+          </div>
+          <div>
+            <label for="trimEndTime">Waktu Selesai (Detik):</label>
+            <input type="number" id="trimEndTime" class="input-field" value="10" min="0" step="0.1">
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btnProcessTrim" disabled onclick="processTrimVideo()">✂️ Potong & Render 60 FPS</button>
+
+        <div id="trimProgressBox" class="hidden" style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+            <span id="trimStatusMsg">Sedang memotong video...</span>
+            <span id="trimPercent">0%</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="trimProgressBar"></div>
+          </div>
+        </div>
+
+        <div id="trimResultCard" class="hidden" style="text-align: center; margin-top: 6px;">
+          <video id="trimResultPlayer" controls style="width: 100%; border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--border-color);"></video>
+          <a id="trimDownloadBtn" class="btn btn-primary" href="#" download="trimmed_video.webm">📥 Download Video Potongan</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast">Notifikasi</div>
+
+  <!-- Hidden Processing Video Element -->
+  <video id="hiddenProcessVid" style="display:none;" playsinline muted></video>
+
+  <script>
+    const toast = document.getElementById('toast');
+
+    function showToast(msg) {
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // --- MAIN TAB NAVIGATION ---
+    function switchMainTab(tab, e) {
+      document.querySelectorAll('.source-tabs-wrapper .source-tab-btn').forEach(btn => btn.classList.remove('active'));
+      if (e) e.target.classList.add('active');
+
+      ['Player', 'Loop', 'V2a', 'A2v', 'Trim'].forEach(p => {
+        const el = document.getElementById(`panel${p}`);
+        if (el) el.classList.add('hidden');
+      });
+
+      const activePanel = document.getElementById(`panel${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+      if (activePanel) activePanel.classList.remove('hidden');
+    }
+
+    // --- MODUL 1: UNIVERSAL STREAM PLAYER V5 ---
+    const video = document.getElementById('videoPlayer');
+    const playerWrapper = document.getElementById('playerWrapper');
+    const subtitleOverlay = document.getElementById('subtitleOverlay');
+    
+    let hlsInstance = null;
+    let shakaInstance = null;
+    let srtCues = [];
+    let srtDelay = 0;
+    let nativeTextTrack = null;
+    let currentSourceType = 'N/A';
+    let currentEngineName = 'HTML5 Native';
+
+    const statusBanner = document.getElementById('statusBanner');
+    const statusText = document.getElementById('statusText');
+
+    const srtDelayInput = document.getElementById('srtDelayInput');
+    const srtDelayVal = document.getElementById('srtDelayVal');
+    const srtSizeInput = document.getElementById('srtSizeInput');
+    const srtSizeVal = document.getElementById('srtSizeVal');
+    const srtBgAlphaInput = document.getElementById('srtBgAlphaInput');
+    const srtBgAlphaVal = document.getElementById('srtBgAlphaVal');
+    const srtTextColorInput = document.getElementById('srtTextColorInput');
+    const srtBgColorInput = document.getElementById('srtBgColorInput');
+
+    const infoResolution = document.getElementById('infoResolution');
+    const infoAspectRatio = document.getElementById('infoAspectRatio');
+    const infoDuration = document.getElementById('infoDuration');
+    const infoContainer = document.getElementById('infoContainer');
+    const infoEngine = document.getElementById('infoEngine');
+    const infoSrtStatus = document.getElementById('infoSrtStatus');
+
+    shaka.polyfill.installAll();
+
+    function switchPlayerSubTab(tab, e) {
+      const container = document.getElementById('panelPlayer');
+      container.querySelectorAll('.source-tabs .source-tab-btn').forEach(btn => btn.classList.remove('active'));
+      if (e) e.target.classList.add('active');
+
+      document.getElementById('playerSubStream').classList.add('hidden');
+      document.getElementById('playerSubLocal').classList.add('hidden');
+      document.getElementById('playerSubSrt').classList.add('hidden');
+
+      if (tab === 'stream') document.getElementById('playerSubStream').classList.remove('hidden');
+      if (tab === 'local') document.getElementById('playerSubLocal').classList.remove('hidden');
+      if (tab === 'srt') document.getElementById('playerSubSrt').classList.remove('hidden');
+    }
+
+    function toggleContainerFullscreen() {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (playerWrapper.requestFullscreen) playerWrapper.requestFullscreen();
+        else if (playerWrapper.webkitRequestFullscreen) playerWrapper.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }
+    }
+
+    function openInVlcApp() {
+      const url = document.getElementById('streamUrlInput').value.trim();
+      if (!url) return showToast("Masukkan URL Stream terlebih dahulu!");
+
+      showToast("Membuka di aplikasi VLC...");
+      window.location.href = `vlc://${url}`;
+      setTimeout(() => {
+        window.location.href = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;type=video/*;package=org.videolan.vlc;end`;
+      }, 800);
+    }
+
+    function wrapCorsProxyUrl(targetUrl) {
+      if (!targetUrl || targetUrl.startsWith('blob:') || targetUrl.startsWith('data:')) return targetUrl;
+      return `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+    }
+
+    class CustomHlsCorsLoader extends Hls.DefaultConfig.loader {
+      constructor(config) {
+        super(config);
+        const load = this.load.bind(this);
+        this.load = function(context, config, callbacks) {
+          if (context && context.url) context.url = wrapCorsProxyUrl(context.url);
+          load(context, config, callbacks);
+        };
+      }
+    }
+
+    async function playStreamUrl(url, drmLicense = '') {
+      showPlayerStatus("Memutar stream...");
+      resetPlayers();
+
+      try {
+        if (url.includes('.mpd') || drmLicense) {
+          currentSourceType = 'DASH / MPEG-DASH';
+          currentEngineName = 'Shaka Player DRM';
+          shakaInstance = new shaka.Player(video);
+          
+          if (drmLicense) {
+            shakaInstance.configure({ drm: { servers: { 'com.widevine.alpha': drmLicense } } });
+          }
+
+          await shakaInstance.load(wrapCorsProxyUrl(url));
+          hidePlayerStatus();
+          showToast("Memutar DASH / DRM Stream");
+          return;
+        }
+
+        if (url.includes('.m3u8') || url.includes('hls')) {
+          currentSourceType = 'HLS (.m3u8)';
+          if (Hls.isSupported()) {
+            currentEngineName = 'Hls.js Binary Pipe';
+            hlsInstance = new Hls({ enableWorker: true, fLoader: CustomHlsCorsLoader, pLoader: CustomHlsCorsLoader });
+            hlsInstance.loadSource(wrapCorsProxyUrl(url));
+            hlsInstance.attachMedia(video);
+            hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+              video.play().catch(() => {});
+              hidePlayerStatus();
+              showToast("Memutar HLS Stream");
+            });
+            hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+              if (data.fatal) {
+                hidePlayerStatus();
+                showToast("Server CDN menolak akses browser. Gunakan tombol 'Buka di VLC'.");
+              }
+            });
+            return;
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            currentEngineName = 'Safari Native HLS';
+            video.src = wrapCorsProxyUrl(url);
+            video.play();
+            hidePlayerStatus();
+            return;
+          }
+        }
+
+        currentSourceType = url.substring(url.lastIndexOf('.') + 1).toUpperCase() || 'Direct Video';
+        currentEngineName = 'HTML5 Native Player';
+        video.src = wrapCorsProxyUrl(url);
+        video.play().then(() => { hidePlayerStatus(); showToast("Memutar Direct Stream"); }).catch(() => hidePlayerStatus());
+
+      } catch (err) {
+        hidePlayerStatus();
+        showToast("Gagal memutar stream.");
+      }
+    }
+
+    function resetPlayers() {
+      if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+      if (shakaInstance) { shakaInstance.destroy(); shakaInstance = null; }
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    }
+
+    function playSingleUrl() {
+      const url = document.getElementById('streamUrlInput').value.trim();
+      const drm = document.getElementById('drmLicenseInput').value.trim();
+      if (!url) return showToast("Masukkan URL Stream terlebih dahulu!");
+      playStreamUrl(url, drm);
+    }
+
+    function playLocalVideo(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      resetPlayers();
+      showPlayerStatus(`Memuat file ${file.name}...`);
+      
+      const ext = file.name.substring(file.name.lastIndexOf('.') + 1).toUpperCase();
+      currentSourceType = `${ext} (Lokal)`;
+      currentEngineName = "HTML5 Local File";
+
+      const fileUrl = URL.createObjectURL(file);
+      video.src = fileUrl;
+      video.play().then(() => {
+        hidePlayerStatus();
+        showToast(`Memutar file lokal: ${file.name}`);
+      }).catch(() => {
+        hidePlayerStatus();
+        showToast("Format video diputar oleh browser.");
+      });
+    }
+
+    function loadSrtFromFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        parseSRTContent(evt.target.result);
+        showToast(`Subtitle terpasang: ${file.name}`);
+      };
+      reader.readAsText(file);
+    }
+
+    async function loadSrtFromUrl() {
+      const url = document.getElementById('srtUrlInput').value.trim();
+      if (!url) return showToast("Masukkan URL Subtitle SRT!");
+
+      showPlayerStatus("Mengunduh subtitle SRT...");
+      try {
+        const res = await fetch(wrapCorsProxyUrl(url));
+        if (!res.ok) throw new Error("Gagal");
+        const text = await res.text();
+        parseSRTContent(text);
+        hidePlayerStatus();
+        showToast("Subtitle SRT terpasang!");
+      } catch (err) {
+        hidePlayerStatus();
+        showToast("Gagal memuat file SRT dari URL.");
+      }
+    }
+
+    function parseSRTContent(srtText) {
+      srtCues = [];
+      const regex = /(\d+)\r?\n(\d{2}:\d{2}:\d{2}[,\.]\d{3}) --> (\d{2}:\d{2}:\d{2}[,\.]\d{3})\r?\n([\s\S]*?)(?=\r?\n\r?\n|\r?\n*$)/g;
+      let match;
+
+      while ((match = regex.exec(srtText)) !== null) {
+        const startTime = timeToSeconds(match[2]);
+        const endTime = timeToSeconds(match[3]);
+        const text = match[4].replace(/\r?\n/g, '<br>').trim();
+        srtCues.push({ start: startTime, end: endTime, text: text });
+      }
+
+      infoSrtStatus.innerText = `Aktif (${srtCues.length} Baris)`;
+      injectNativeTextTrack();
+      updateSrtStyle();
+    }
+
+    function injectNativeTextTrack() {
+      if (nativeTextTrack) nativeTextTrack.mode = 'disabled';
+      nativeTextTrack = video.addTextTrack("subtitles", "Indonesia SRT", "id");
+      nativeTextTrack.mode = "showing";
+
+      srtCues.forEach(cueObj => {
+        const start = Math.max(0, cueObj.start + srtDelay);
+        const end = Math.max(0, cueObj.end + srtDelay);
+        const cleanText = cueObj.text.replace(/<br\s*\/?>/gi, '\n');
+
+        if (window.VTTCue) {
+          const vttCue = new VTTCue(start, end, cleanText);
+          nativeTextTrack.addCue(vttCue);
+        }
+      });
+    }
+
+    function timeToSeconds(timeStr) {
+      const parts = timeStr.replace(',', '.').split(':');
+      return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+    }
+
+    video.addEventListener('timeupdate', () => {
+      updateVideoInfo();
+      const isNativeFullscreen = document.fullscreenElement === video || document.webkitFullscreenElement === video;
+
+      if (!srtCues.length || isNativeFullscreen) {
+        subtitleOverlay.style.display = 'none';
+        return;
+      }
+
+      const adjustedTime = video.currentTime - srtDelay;
+      const activeCue = srtCues.find(c => adjustedTime >= c.start && adjustedTime <= c.end);
+
+      if (activeCue) {
+        subtitleOverlay.innerHTML = activeCue.text;
+        subtitleOverlay.style.display = 'inline-block';
+      } else {
+        subtitleOverlay.innerHTML = '';
+        subtitleOverlay.style.display = 'none';
+      }
+    });
+
+    function adjustSrtDelay(amount) { setSrtDelay(srtDelay + amount); }
+    function setSrtDelay(value) {
+      srtDelay = Math.round(value * 10) / 10;
+      srtDelayInput.value = srtDelay.toFixed(1);
+      srtDelayVal.innerText = `${srtDelay > 0 ? '+' : ''}${srtDelay.toFixed(1)}s`;
+      if (srtCues.length > 0) injectNativeTextTrack();
+      showToast(`Delay Subtitle: ${srtDelay.toFixed(1)}s`);
+    }
+
+    function updateSrtStyle() {
+      const fontSize = srtSizeInput.value;
+      const bgAlpha = parseFloat(srtBgAlphaInput.value) / 100;
+      const textColor = srtTextColorInput.value;
+      const bgColorHex = srtBgColorInput.value;
+
+      srtSizeVal.innerText = `${fontSize}px`;
+      srtBgAlphaVal.innerText = `${srtBgAlphaInput.value}%`;
+
+      const r = parseInt(bgColorHex.slice(1, 3), 16);
+      const g = parseInt(bgColorHex.slice(3, 5), 16);
+      const b = parseInt(bgColorHex.slice(5, 7), 16);
+
+      subtitleOverlay.style.fontSize = `${fontSize}px`;
+      subtitleOverlay.style.color = textColor;
+      subtitleOverlay.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${bgAlpha})`;
+    }
+
+    video.addEventListener('loadedmetadata', updateVideoInfo);
+
+    function updateVideoInfo() {
+      if (video.videoWidth && video.videoHeight) {
+        infoResolution.innerText = `${video.videoWidth} x ${video.videoHeight} Px`;
+        const gcdVal = gcd(video.videoWidth, video.videoHeight);
+        infoAspectRatio.innerText = `${video.videoWidth / gcdVal}:${video.videoHeight / gcdVal}`;
+      } else {
+        infoResolution.innerText = '-';
+        infoAspectRatio.innerText = '-';
+      }
+
+      if (video.duration && !isNaN(video.duration)) {
+        infoDuration.innerText = formatDuration(video.duration);
+      } else {
+        infoDuration.innerText = 'Live Stream';
+      }
+
+      infoContainer.innerText = currentSourceType;
+      infoEngine.innerText = currentEngineName;
+    }
+
+    function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+    function formatDuration(sec) {
+      const hrs = Math.floor(sec / 3600);
+      const mins = Math.floor((sec % 3600) / 60);
+      const secs = Math.floor(sec % 60);
+      if (hrs > 0) return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function showPlayerStatus(msg) { statusText.innerText = msg; statusBanner.classList.remove('hidden'); }
+    function hidePlayerStatus() { statusBanner.classList.add('hidden'); }
+
+    // --- MODUL 2: ZERO-DELAY LOOP LOGIC ---
+    const loopV1 = document.getElementById('loopV1');
+    const loopV2 = document.getElementById('loopV2');
+    let loopFileObj = null, loopVideoUrl = null, loopBaseDuration = 0, loopTotalLoops = 3, loopCurrentIndex = 0;
+    let loopActiveVid = loopV1, loopInactiveVid = loopV2;
+    let loopIsPlaying = false, loopIsSwitching = false, loopAnimFrame = null;
+
+    function handleLoopFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      loopFileObj = file;
+      if (loopVideoUrl) URL.revokeObjectURL(loopVideoUrl);
+      loopVideoUrl = URL.createObjectURL(file);
+      document.getElementById('loopFileName').textContent = file.name;
+
+      loopV1.src = loopVideoUrl;
+      loopV1.onloadedmetadata = () => {
+        loopBaseDuration = loopV1.duration;
+        document.getElementById('btnApplyLoop').disabled = false;
+        document.getElementById('btnExportLoop').disabled = false;
+        document.getElementById('loopStatusText').textContent = `Video dimuat (${loopBaseDuration.toFixed(1)}s). Pilih jumlah duplikasi.`;
+      };
+    }
+
+    function applyLoopDuplication() {
+      if (!loopVideoUrl) return;
+
+      loopTotalLoops = parseInt(document.getElementById('loopCountSelect').value);
+      loopCurrentIndex = 0;
+
+      loopV1.src = loopVideoUrl;
+      loopV2.src = loopVideoUrl;
+      loopV1.load();
+      loopV2.load();
+
+      loopActiveVid = loopV1;
+      loopInactiveVid = loopV2;
+      loopV1.classList.add('active');
+      loopV2.classList.remove('active');
+
+      document.getElementById('btnToggleLoopPlay').disabled = false;
+      const totalDur = loopBaseDuration * loopTotalLoops;
+      document.getElementById('loopTimeDisplay').textContent = `00:00 / ${formatDuration(totalDur)}`;
+      document.getElementById('loopStatusText').textContent = `Berhasil diduplikat ${loopTotalLoops}x! Total Durasi: ${formatDuration(totalDur)}.`;
+
+      startLoopPlayback();
+    }
+
+    function toggleLoopPlay() {
+      if (loopIsPlaying) pauseLoopPlayback();
+      else startLoopPlayback();
+    }
+
+    function startLoopPlayback() {
+      if (!loopVideoUrl) return;
+      loopIsPlaying = true;
+      document.getElementById('btnToggleLoopPlay').textContent = "⏸ Jeda";
+      loopActiveVid.play().then(() => updateLoopTimer()).catch(() => {});
+    }
+
+    function pauseLoopPlayback() {
+      loopIsPlaying = false;
+      document.getElementById('btnToggleLoopPlay').textContent = "▶ Putar";
+      loopV1.pause();
+      loopV2.pause();
+      if (loopAnimFrame) cancelAnimationFrame(loopAnimFrame);
+    }
+
+    function updateLoopTimer() {
+      if (!loopIsPlaying) return;
+      const curVidTime = loopActiveVid.currentTime;
+      const curTotalTime = (loopCurrentIndex * loopBaseDuration) + curVidTime;
+      const maxTotalTime = loopBaseDuration * loopTotalLoops;
+
+      document.getElementById('loopTimeDisplay').textContent = `${formatDuration(curTotalTime)} / ${formatDuration(maxTotalTime)}`;
+
+      if (!loopIsSwitching && (loopBaseDuration - curVidTime <= 0.12)) {
+        triggerLoopSeamlessSwitch();
+      }
+      loopAnimFrame = requestAnimationFrame(updateLoopTimer);
+    }
+
+    function triggerLoopSeamlessSwitch() {
+      loopIsSwitching = true;
+      loopCurrentIndex++;
+
+      if (loopCurrentIndex >= loopTotalLoops) {
+        pauseLoopPlayback();
+        loopCurrentIndex = 0;
+        loopV1.currentTime = 0;
+        loopV2.currentTime = 0;
+        document.getElementById('loopTimeDisplay').textContent = `00:00 / ${formatDuration(loopBaseDuration * loopTotalLoops)}`;
+        loopIsSwitching = false;
+        return;
+      }
+
+      loopInactiveVid.currentTime = 0;
+      loopInactiveVid.play().then(() => {
+        loopInactiveVid.classList.add('active');
+        loopActiveVid.classList.remove('active');
+        loopActiveVid.pause();
+        loopActiveVid.currentTime = 0;
+
+        const temp = loopActiveVid;
+        loopActiveVid = loopInactiveVid;
+        loopInactiveVid = temp;
+
+        setTimeout(() => { loopIsSwitching = false; }, 150);
+      });
+    }
+
+    // EXPORT & DOWNLOAD LOOPED VIDEO
+    async function exportLoopVideo() {
+      if (!loopFileObj) return;
+
+      const progressBox = document.getElementById('loopProgressBox');
+      const progressBar = document.getElementById('loopProgressBar');
+      const percentLabel = document.getElementById('loopPercent');
+      const statusMsg = document.getElementById('loopStatusMsg');
+      const resultCard = document.getElementById('loopResultCard');
+
+      progressBox.classList.remove('hidden');
+      resultCard.classList.add('hidden');
+
+      const count = parseInt(document.getElementById('loopCountSelect').value);
+      const totalDuration = loopBaseDuration * count;
+
+      statusMsg.textContent = 'Menyiapkan gabungan loop...';
+      progressBar.style.width = '0%';
+      percentLabel.textContent = '0%';
+
+      const tempVid = document.createElement('video');
+      tempVid.src = URL.createObjectURL(loopFileObj);
+      tempVid.muted = false;
+      tempVid.playbackRate = 1.0; // Real-time 1.0x sync
+
+      await new Promise(r => tempVid.onloadedmetadata = r);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = tempVid.videoWidth || 854;
+      canvas.height = tempVid.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+
+      const stream = canvas.captureStream(30);
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      const chunks = [];
+
+      mediaRecorder.ondataavailable = e => chunks.push(e.data);
+      mediaRecorder.start();
+
+      let currentLoopPass = 0;
+      tempVid.currentTime = 0;
+      
+      try { await tempVid.play(); } catch(e) { tempVid.muted = true; await tempVid.play(); }
+
+      const renderLoopFrame = () => {
+        if (currentLoopPass >= count) return;
+
+        ctx.drawImage(tempVid, 0, 0, canvas.width, canvas.height);
+        const elapsed = (currentLoopPass * loopBaseDuration) + tempVid.currentTime;
+        const progress = Math.min(100, Math.floor((elapsed / totalDuration) * 100));
+
+        progressBar.style.width = `${progress}%`;
+        percentLabel.textContent = `${progress}%`;
+        statusMsg.textContent = `Menggabungkan Loop (${currentLoopPass + 1}/${count})...`;
+
+        if (tempVid.currentTime >= loopBaseDuration - 0.08 || tempVid.ended) {
+          currentLoopPass++;
+          if (currentLoopPass < count) {
+            tempVid.currentTime = 0;
+            tempVid.play();
+            requestAnimationFrame(renderLoopFrame);
+          } else {
+            tempVid.pause();
+            mediaRecorder.stop();
+          }
+        } else {
+          requestAnimationFrame(renderLoopFrame);
+        }
+      };
+
+      requestAnimationFrame(renderLoopFrame);
+
+      mediaRecorder.onstop = () => {
+        const resultBlob = new Blob(chunks, { type: 'video/webm' });
+        const resultUrl = URL.createObjectURL(resultBlob);
+
+        const downloadBtn = document.getElementById('loopDownloadBtn');
+        downloadBtn.href = resultUrl;
+        downloadBtn.download = `looped_${count}x_${loopFileObj.name.split('.')[0]}.webm`;
+
+        statusMsg.textContent = 'Export Loop selesai!';
+        resultCard.classList.remove('hidden');
+        showToast("Video loop berhasil diproses & siap diunduh!");
+      };
+    }
+
+    // --- MODUL 3: VIDEO TO AUDIO LOGIC ---
+    let v2aSelectedFile = null;
+
+    function handleV2aFile(e) {
+      const file = e.target.files[0];
+      if (file) {
+        v2aSelectedFile = file;
+        document.getElementById('v2aFileName').textContent = file.name;
+        document.getElementById('btnExtractAudio').disabled = false;
+      }
+    }
+
+    async function processVideoToAudio() {
+      if (!v2aSelectedFile) return;
+
+      const format = document.getElementById('v2aFormatSelect').value;
+      const progressBox = document.getElementById('v2aProgressBox');
+      const progressBar = document.getElementById('v2aProgressBar');
+      const percentLabel = document.getElementById('v2aPercent');
+      const statusMsg = document.getElementById('v2aStatusMsg');
+      const resultCard = document.getElementById('v2aResultCard');
+
+      progressBox.classList.remove('hidden');
+      resultCard.classList.add('hidden');
+      progressBar.style.width = '10%';
+      percentLabel.textContent = '10%';
+      statusMsg.textContent = 'Membaca data file video...';
+
+      try {
+        const arrayBuffer = await v2aSelectedFile.arrayBuffer();
+        statusMsg.textContent = 'Mendekode trek audio...';
+        progressBar.style.width = '30%';
+        percentLabel.textContent = '30%';
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+        statusMsg.textContent = `Mengonversi ke ${format.toUpperCase()}...`;
+        progressBar.style.width = '60%';
+        percentLabel.textContent = '60%';
+
+        let resultBlob = null;
+        let ext = format;
+
+        if (format === 'wav') {
+          resultBlob = bufferToWav(audioBuffer);
+        } else if (format === 'mp3') {
+          resultBlob = await bufferToMp3(audioBuffer);
+        } else {
+          resultBlob = bufferToWav(audioBuffer);
+          ext = 'wav';
+        }
+
+        progressBar.style.width = '100%';
+        percentLabel.textContent = '100%';
+        statusMsg.textContent = 'Ekstraksi selesai!';
+
+        const audioUrl = URL.createObjectURL(resultBlob);
+        const preview = document.getElementById('v2aAudioPreview');
+        const downloadBtn = document.getElementById('v2aDownloadBtn');
+
+        preview.src = audioUrl;
+        downloadBtn.href = audioUrl;
+        downloadBtn.download = `${v2aSelectedFile.name.split('.')[0]}_audio.${ext}`;
+
+        resultCard.classList.remove('hidden');
+        showToast("Audio berhasil diekstrak!");
+      } catch (err) {
+        showToast("Gagal mengonversi audio!");
+        statusMsg.textContent = 'Terjadi kesalahan.';
+      }
+    }
+
+    function bufferToWav(abuffer) {
+      const numOfChan = abuffer.numberOfChannels;
+      const length = abuffer.length * numOfChan * 2 + 44;
+      const buffer = new ArrayBuffer(length);
+      const view = new DataView(buffer);
+      const channels = [];
+      let sample = 0, offset = 0, pos = 0;
+
+      function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+      function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+
+      setUint32(0x46464952); setUint32(length - 8); setUint32(0x45564157); setUint32(0x20746d66);
+      setUint32(16); setUint16(1); setUint16(numOfChan); setUint32(abuffer.sampleRate);
+      setUint32(abuffer.sampleRate * 2 * numOfChan); setUint16(numOfChan * 2); setUint16(16);
+      setUint32(0x61746164); setUint32(length - pos - 4);
+
+      for (let i = 0; i < numOfChan; i++) channels.push(abuffer.getChannelData(i));
+
+      while (offset < abuffer.length) {
+        for (let i = 0; i < numOfChan; i++) {
+          sample = Math.max(-1, Math.min(1, channels[i][offset]));
+          sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+          view.setInt16(pos, sample, true); pos += 2;
+        }
+        offset++;
+      }
+      return new Blob([buffer], { type: "audio/wav" });
+    }
+
+    async function bufferToMp3(audioBuffer) {
+      if (typeof lamejs === 'undefined') return bufferToWav(audioBuffer);
+      const channels = audioBuffer.numberOfChannels;
+      const sampleRate = audioBuffer.sampleRate;
+      const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
+      const mp3Data = [];
+
+      const left = audioBuffer.getChannelData(0);
+      const right = channels > 1 ? audioBuffer.getChannelData(1) : left;
+      const sampleBlockSize = 1152;
+
+      const leftInt16 = new Int16Array(left.length);
+      const rightInt16 = new Int16Array(right.length);
+      for (let i = 0; i < left.length; i++) {
+        leftInt16[i] = left[i] < 0 ? left[i] * 32768 : left[i] * 32767;
+        rightInt16[i] = right[i] < 0 ? right[i] * 32768 : right[i] * 32767;
+      }
+
+      for (let i = 0; i < leftInt16.length; i += sampleBlockSize) {
+        const leftChunk = leftInt16.subarray(i, i + sampleBlockSize);
+        const rightChunk = rightInt16.subarray(i, i + sampleBlockSize);
+        let mp3buf = (channels === 2) ? mp3encoder.encodeBuffer(leftChunk, rightChunk) : mp3encoder.encodeBuffer(leftChunk);
+        if (mp3buf.length > 0) mp3Data.push(mp3buf);
+      }
+      const mp3buf = mp3encoder.flush();
+      if (mp3buf.length > 0) mp3Data.push(mp3buf);
+      return new Blob(mp3Data, { type: 'audio/mp3' });
+    }
+
+    // --- MODUL 4: AUDIO + GAMBAR KE VIDEO (SYNC FIX) ---
+    let a2vImageFiles = [];
+    let a2vAudioFile = null;
+
+    function handleA2vImages(e) {
+      a2vImageFiles = Array.from(e.target.files);
+      document.getElementById('a2vImgCount').textContent = `${a2vImageFiles.length} Gambar dipilih`;
+      checkA2vReady();
+    }
+
+    function handleA2vAudio(e) {
+      a2vAudioFile = e.target.files[0];
+      if (a2vAudioFile) {
+        document.getElementById('a2vAudioName').textContent = a2vAudioFile.name;
+        checkA2vReady();
+      }
+    }
+
+    function checkA2vReady() {
+      document.getElementById('btnRenderA2v').disabled = !(a2vImageFiles.length > 0 && a2vAudioFile);
+    }
+
+    async function renderAudioImageToVideo() {
+      if (!a2vImageFiles.length || !a2vAudioFile) return;
+
+      const durPerImg = parseFloat(document.getElementById('a2vDurationPerImg').value) || 3;
+      const progressBox = document.getElementById('a2vProgressBox');
+      const progressBar = document.getElementById('a2vProgressBar');
+      const percentLabel = document.getElementById('a2vPercent');
+      const statusMsg = document.getElementById('a2vStatusMsg');
+      const resultCard = document.getElementById('a2vResultCard');
+
+      progressBox.classList.remove('hidden');
+      resultCard.classList.add('hidden');
+
+      statusMsg.textContent = 'Memuat gambar & audio...';
+      const loadedImgs = await Promise.all(a2vImageFiles.map(file => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.src = URL.createObjectURL(file);
+        });
+      }));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 854; canvas.height = 480;
+      const ctx = canvas.getContext('2d');
+
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const audioArrayBuf = await a2vAudioFile.arrayBuffer();
+      const audioBuf = await audioCtx.decodeAudioData(audioArrayBuf);
+
+      const audioSrcNode = audioCtx.createBufferSource();
+      audioSrcNode.buffer = audioBuf;
+
+      const dest = audioCtx.createMediaStreamDestination();
+      audioSrcNode.connect(dest);
+
+      const canvasStream = canvas.captureStream(30);
+      const combinedStream = new MediaStream([
+        ...canvasStream.getVideoTracks(),
+        ...dest.stream.getAudioTracks()
+      ]);
+
+      const options = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+        ? { mimeType: 'video/webm;codecs=vp8,opus' }
+        : { mimeType: 'video/webm' };
+
+      const mediaRecorder = new MediaRecorder(combinedStream, options);
+      const chunks = [];
+      mediaRecorder.ondataavailable = e => chunks.push(e.data);
+
+      mediaRecorder.start();
+      audioSrcNode.start();
+
+      const totalDurationSec = Math.min(a2vImageFiles.length * durPerImg, audioBuf.duration);
+      const startAudioTime = audioCtx.currentTime;
+
+      const drawFrame = () => {
+        const elapsed = audioCtx.currentTime - startAudioTime;
+        const progress = Math.min(100, Math.floor((elapsed / totalDurationSec) * 100));
+
+        progressBar.style.width = `${progress}%`;
+        percentLabel.textContent = `${progress}%`;
+        statusMsg.textContent = `Merender Sync (${elapsed.toFixed(1)}s / ${totalDurationSec.toFixed(1)}s)...`;
+
+        const currentImgIdx = Math.min(Math.floor(elapsed / durPerImg), loadedImgs.length - 1);
+        const curImg = loadedImgs[currentImgIdx];
+
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const hRatio = canvas.width / curImg.width;
+        const vRatio = canvas.height / curImg.height;
+        const ratio = Math.min(hRatio, vRatio);
+        const centerShiftX = (canvas.width - curImg.width * ratio) / 2;
+        const centerShiftY = (canvas.height - curImg.height * ratio) / 2;
+
+        ctx.drawImage(curImg, 0, 0, curImg.width, curImg.height,
+          centerShiftX, centerShiftY, curImg.width * ratio, curImg.height * ratio);
+
+        if (elapsed < totalDurationSec) {
+          requestAnimationFrame(drawFrame);
+        } else {
+          audioSrcNode.stop();
+          mediaRecorder.stop();
+        }
+      };
+
+      requestAnimationFrame(drawFrame);
+
+      mediaRecorder.onstop = () => {
+        const videoBlob = new Blob(chunks, { type: 'video/webm' });
+        const videoUrl = URL.createObjectURL(videoBlob);
+
+        const videoPreview = document.getElementById('a2vVideoPreview');
+        const downloadBtn = document.getElementById('a2vDownloadBtn');
+
+        videoPreview.src = videoUrl;
+        downloadBtn.href = videoUrl;
+
+        statusMsg.textContent = 'Render Video Selesai!';
+        resultCard.classList.remove('hidden');
+        showToast("Video gabungan berhasil dibuat!");
+      };
+    }
+
+    // --- MODUL 5: PEMOTONG VIDEO (FULL-SYNC REAL-TIME FIX) ---
+    let trimSelectedFile = null;
+    let trimVideoDuration = 0;
+
+    function handleTrimFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      trimSelectedFile = file;
+      document.getElementById('trimFileName').textContent = file.name;
+
+      const player = document.getElementById('trimPreviewPlayer');
+      player.src = URL.createObjectURL(file);
+      player.style.display = 'block';
+
+      player.onloadedmetadata = () => {
+        trimVideoDuration = player.duration;
+        document.getElementById('trimStartTime').value = 0;
+        document.getElementById('trimEndTime').value = Math.min(10, trimVideoDuration).toFixed(1);
+        document.getElementById('btnProcessTrim').disabled = false;
+        showToast("Video siap dipotong!");
+      };
+    }
+
+    function previewTrimStart() {
+      const player = document.getElementById('trimPreviewPlayer');
+      const start = parseFloat(document.getElementById('trimStartTime').value) || 0;
+      player.currentTime = start;
+    }
+
+    async function processTrimVideo() {
+      if (!trimSelectedFile) return;
+
+      const startSec = Math.max(0, parseFloat(document.getElementById('trimStartTime').value) || 0);
+      const endSec = Math.min(trimVideoDuration, parseFloat(document.getElementById('trimEndTime').value) || trimVideoDuration);
+      if (startSec >= endSec) return showToast("Waktu mulai harus lebih kecil dari waktu selesai!");
+
+      const progressBox = document.getElementById('trimProgressBox');
+      const progressBar = document.getElementById('trimProgressBar');
+      const percentLabel = document.getElementById('trimPercent');
+      const statusMsg = document.getElementById('trimStatusMsg');
+      const resultCard = document.getElementById('trimResultCard');
+      progressBox.classList.remove('hidden');
+      resultCard.classList.add('hidden');
+      progressBar.style.width = '0%';
+      percentLabel.textContent = '0%';
+
+      const processVid = document.getElementById('hiddenProcessVid');
+      const objectUrl = URL.createObjectURL(trimSelectedFile);
+      processVid.src = objectUrl;
+      processVid.muted = false;
+      processVid.playsInline = true;
+      processVid.playbackRate = 1;
+      processVid.setAttribute('playsinline', '');
+
+      try {
+        await new Promise((resolve, reject) => {
+          processVid.onloadedmetadata = resolve;
+          processVid.onerror = reject;
+        });
+        processVid.currentTime = startSec;
+        await new Promise(resolve => { processVid.onseeked = resolve; });
+
+        const W = processVid.videoWidth || 1280;
+        const H = processVid.videoHeight || 720;
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d', {
+          alpha: false,
+          desynchronized: true,
+          willReadFrequently: false
+        });
+
+        // IMPORTANT: canvas is fed by requestVideoFrameCallback, not timeupdate.
+        // This prevents the old ~5 FPS/stuttering behavior when the WebView throttles UI events.
+        const TARGET_FPS = 60;
+        const canvasStream = canvas.captureStream(TARGET_FPS);
+        const sourceCapture = processVid.captureStream || processVid.mozCaptureStream;
+        if (!sourceCapture) throw new Error('captureStream tidak tersedia');
+        const sourceStream = sourceCapture.call(processVid);
+        const sourceAudio = sourceStream.getAudioTracks();
+        if (sourceAudio.length) {
+          canvasStream.addTrack(sourceAudio[0]);
+        }
+
+        const videoTrack = canvasStream.getVideoTracks()[0];
+        try {
+          videoTrack.contentHint = 'motion';
+          await videoTrack.applyConstraints({ frameRate: { min: 30, ideal: 60, max: 60 } });
+        } catch (_) {}
+
+        const mimeCandidates = [
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus',
+          'video/webm'
+        ];
+        const mimeType = mimeCandidates.find(t => MediaRecorder.isTypeSupported(t));
+        if (!mimeType) throw new Error('WebM MediaRecorder tidak tersedia');
+
+        const recorder = new MediaRecorder(canvasStream, {
+          mimeType,
+          videoBitsPerSecond: Math.max(12_000_000, W * H * 12),
+          audioBitsPerSecond: 192_000
+        });
+
+        const chunks = [];
+        recorder.ondataavailable = e => {
+          if (e.data && e.data.size) chunks.push(e.data);
+        };
+
+        const total = endSec - startSec;
+        let stopped = false;
+        let frameCount = 0;
+        let lastFrameTime = -1;
+        let raf = 0;
+
+        const updateProgress = () => {
+          const elapsed = Math.max(0, processVid.currentTime - startSec);
+          const pct = Math.min(100, Math.floor((elapsed / total) * 100));
+          progressBar.style.width = pct + '%';
+          percentLabel.textContent = pct + '%';
+          statusMsg.textContent = `Smart Render ${TARGET_FPS} FPS • ${elapsed.toFixed(2)}s / ${total.toFixed(2)}s • frame ${frameCount}`;
+        };
+
+        const finish = () => {
+          if (stopped) return;
+          stopped = true;
+          if (raf) cancelAnimationFrame(raf);
+          try { processVid.pause(); } catch (_) {}
+          try { sourceStream.getTracks().forEach(t => t.stop()); } catch (_) {}
+          try { canvasStream.getTracks().forEach(t => t.stop()); } catch (_) {}
+          try { URL.revokeObjectURL(objectUrl); } catch (_) {}
+          if (recorder.state !== 'inactive') recorder.stop();
+        };
+
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: mimeType });
+          const url = URL.createObjectURL(blob);
+          const resultPlayer = document.getElementById('trimResultPlayer');
+          const downloadBtn = document.getElementById('trimDownloadBtn');
+          resultPlayer.src = url;
+          downloadBtn.href = url;
+          downloadBtn.download = `trimmed_60fps_${trimSelectedFile.name.replace(/\.[^.]+$/, '')}.webm`;
+          progressBar.style.width = '100%';
+          percentLabel.textContent = '100%';
+          statusMsg.textContent = `Selesai • ${frameCount} frame • target 60 FPS`;
+          resultCard.classList.remove('hidden');
+          showToast(`Cut selesai: ${frameCount} frame, target 60 FPS`);
+        };
+
+        // Ask WebCodecs for a hardware-capable encoder. MediaRecorder remains the
+        // muxing path so audio is preserved. The hint is advisory per WebCodecs spec.
+        let hwEncoderHint = 'WebCodecs tidak tersedia';
+        if ('VideoEncoder' in window) {
+          try {
+            const cfg = {
+              codec: 'vp09.00.10.08', width: W, height: H,
+              bitrate: Math.max(8_000_000, W * H * 8), framerate: TARGET_FPS,
+              hardwareAcceleration: 'prefer-hardware',
+              latencyMode: 'realtime'
+            };
+            const support = await VideoEncoder.isConfigSupported(cfg);
+            hwEncoderHint = support.supported ? 'WebCodecs HW hint aktif' : 'WebCodecs HW tidak tersedia';
+          } catch (_) {}
+        }
+        statusMsg.textContent = `Menyiapkan ${TARGET_FPS} FPS • ${hwEncoderHint}...`;
+
+        recorder.start(100);
+        try {
+          await processVid.play();
+        } catch (_) {
+          processVid.muted = true;
+          await processVid.play();
+        }
+
+        const drawAndSchedule = (now, metadata) => {
+          if (stopped) return;
+          const t = processVid.currentTime;
+          if (t >= endSec || processVid.ended) {
+            finish();
+            return;
+          }
+
+          // Draw only when the media pipeline presents a real decoded frame.
+          // requestVideoFrameCallback is synchronized to decoded video frames.
+          if (t !== lastFrameTime) {
+            ctx.drawImage(processVid, 0, 0, W, H);
+            lastFrameTime = t;
+            frameCount++;
+            updateProgress();
+          }
+
+          if ('requestVideoFrameCallback' in processVid) {
+            processVid.requestVideoFrameCallback(drawAndSchedule);
+          } else {
+            raf = requestAnimationFrame(() => drawAndSchedule(performance.now(), null));
+          }
+        };
+
+        if ('requestVideoFrameCallback' in processVid) {
+          processVid.requestVideoFrameCallback(drawAndSchedule);
+        } else {
+          raf = requestAnimationFrame(() => drawAndSchedule(performance.now(), null));
+        }
+      } catch (err) {
+        try { URL.revokeObjectURL(objectUrl); } catch (_) {}
+        console.error(err);
+        showToast(`Render gagal: ${err.message || err}`);
+      }
+    }
+  </script>
+</body>
+</html>
