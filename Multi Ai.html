@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>MA-HexaUtilitySuite v1.0</title>
+
+  <!-- Google Font: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-main: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-hover: #334155;
+      --accent-primary: #10b981;
+      --accent-hover: #059669;
+      --accent-cyan: #06b6d4;
+      --accent-sky: #38bdf8;
+      --accent-gold: #fbbf24;
+      --accent-red: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+      
+      /* Safe Zone Top & Bottom Guarantee */
+      --safe-top: max(env(safe-area-inset-top, 0px), 20px);
+      --safe-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding-top: calc(var(--safe-top) + 10px);
+      padding-bottom: calc(var(--safe-bottom) + 12px);
+      overflow-x: hidden;
+    }
+
+    /* Header Sticky */
+    header {
+      background-color: rgba(30, 41, 59, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 16px;
+      margin-top: calc(-1 * (var(--safe-top) + 10px));
+      padding-top: calc(var(--safe-top) + 10px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent-sky), var(--accent-primary));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.4);
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    .badge {
+      font-size: 10px;
+      background: var(--border-color);
+      color: var(--accent-sky);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    main {
+      flex: 1;
+      padding: 14px;
+      max-width: 750px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Scrollable Tab Navigation */
+    .source-tabs-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .source-tabs-wrapper::-webkit-scrollbar { display: none; }
+
+    .source-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-card);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      min-width: max-content;
+    }
+
+    .source-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 42px;
+      white-space: nowrap;
+    }
+
+    .source-tab-btn.active {
+      background: linear-gradient(135deg, var(--accent-sky), var(--accent-cyan));
+      color: #0f172a;
+    }
+
+    /* Card Component */
+    .card {
+      background-color: var(--bg-card);
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--accent-sky);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+    }
+
+    .input-field, select.input-field, textarea.input-field {
+      background-color: var(--bg-main);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      width: 100%;
+      user-select: text;
+    }
+
+    .input-field:focus {
+      border-color: var(--accent-sky);
+    }
+
+    textarea.input-field {
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.5;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+
+    .btn {
+      appearance: none;
+      border: none;
+      background-color: var(--bg-card-hover);
+      color: var(--text-main);
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+      min-height: 44px;
+      touch-action: manipulation;
+      width: 100%;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-sky), #0284c7);
+      color: #000;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
+      color: #000;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--accent-red), #b91c1c);
+      color: #fff;
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Custom Platform Buttons */
+    .btn-shopee { background-color: #ee4d2d; color: #fff; }
+    .btn-tokopedia { background-color: #03ac0e; color: #fff; }
+    .btn-tiktok { background-color: #000000; border: 1px solid #FE2C55; color: #fff; }
+    .btn-lazada { background-color: #0f1470; color: #fff; }
+    .btn-bukalapak { background-color: #e31f51; color: #fff; }
+    .btn-blibli { background-color: #0095da; color: #fff; }
+    .btn-gnews { background-color: #ea4335; color: #fff; }
+    .btn-twitter { background-color: #000000; border: 1px solid #38bdf8; color: #fff; }
+    .btn-youtube { background-color: #ff0000; color: #fff; }
+    .btn-instagram { background-color: #c13584; color: #fff; }
+    .btn-detik { background-color: #1d4ed8; color: #fff; }
+
+    .chip-container {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      background: var(--border-color);
+      color: var(--text-main);
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .chip:hover {
+      background: var(--accent-sky);
+      color: #000;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background: var(--bg-main);
+      color: var(--accent-sky);
+      font-weight: 800;
+    }
+
+    .cheapest {
+      color: var(--accent-primary);
+      font-weight: 800;
+    }
+
+    /* Temp Mail Specifics */
+    .email-box {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px 14px;
+    }
+
+    .email-address {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent-gold);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      user-select: text;
+    }
+
+    .mail-card {
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: var(--bg-main);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .mail-card:hover {
+      border-color: var(--accent-sky);
+    }
+
+    .mail-from {
+      font-size: 11px;
+      color: var(--accent-sky);
+      font-weight: 700;
+    }
+
+    .mail-subject {
+      font-size: 13px;
+      font-weight: 800;
+      margin: 3px 0;
+      color: var(--text-main);
+    }
+
+    .mail-date {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hidden { display: none !important; }
+
+    .toast {
+      position: fixed;
+      bottom: calc(var(--safe-bottom) + 16px);
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background-color: #1e293b;
+      color: #fff;
+      border: 1px solid var(--accent-sky);
+      padding: 10px 18px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- Sticky Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">🎨</div>
+      <div class="brand-title">MA-HexaUtilitySuite</div>
+    </div>
+    <span class="badge">v1.0 6-in-1</span>
+  </header>
+
+  <main>
+    <!-- Scrollable Horizontal Tab Bar -->
+    <div class="source-tabs-wrapper">
+      <div class="source-tabs">
+        <button class="source-tab-btn active" onclick="switchTab('aigambar', event)">🎨 AI Gambar</button>
+        <button class="source-tab-btn" onclick="switchTab('olshop', event)">🛍️ Cek Olshop</button>
+        <button class="source-tab-btn" onclick="switchTab('drivelink', event)">🔗 Drive Linker</button>
+        <button class="source-tab-btn" onclick="switchTab('berita', event)">📰 Hub Berita</button>
+        <button class="source-tab-btn" onclick="switchTab('shortlink', event)">✂️ Pemendek Link</button>
+        <button class="source-tab-btn" onclick="switchTab('tempmail', event)">📧 Temp Mail</button>
+      </div>
+    </div>
+
+    <!-- MODUL 1: AI GENERATOR GAMBAR -->
+    <div id="panelAigambar" style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="card">
+        <div class="card-title">🎨 AI Generator Gambar (Pollinations AI)</div>
+        <label for="aiPromptInput">Deskripsi Gambar (Prompt):</label>
+        <textarea id="aiPromptInput" class="input-field" placeholder="Contoh: gunung berapi meletus malam hari dengan petir dan lahar merah, gaya lukisan minyak..."></textarea>
+        
+        <label style="margin-top: 4px;">Rekomendasi Prompt Cepat:</label>
+        <div class="chip-container">
+          <span class="chip" onclick="setAiPrompt('gunung berapi meletus malam hari dengan petir dan lahar merah, cinematic lighting')">🌋 Gunung Berapi</span>
+          <span class="chip" onclick="setAiPrompt('Kota Jakarta tahun 2100 gaya cyberpunk, mobil terbang, lampu neon')">🏙️ Jakarta Cyberpunk</span>
+          <span class="chip" onclick="setAiPrompt('Karakter kartun kelinci lucu sedang memasak, 3D render Pixar style')">🐰 Kelinci 3D</span>
+        </div>
+
+        <div class="grid-2" style="margin-top: 4px;">
+          <div>
+            <label for="aiAspectRatio">Rasio Gambar:</label>
+            <select id="aiAspectRatio" class="input-field">
+              <option value="1:1">Square (1:1)</option>
+              <option value="16:9">Landscape (16:9)</option>
+              <option value="9:16">Story / Portrait (9:16)</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="aiModelSelect">Gaya / Model AI:</label>
+            <select id="aiModelSelect" class="input-field">
+              <option value="flux">Flux (Ultra Detail)</option>
+              <option value="turbo">Turbo (Super Cepat)</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="btnAiGenerate" class="btn btn-primary" onclick="generateAiImage()">✨ Buat Gambar AI Now</button>
+      </div>
+
+      <div id="aiLoadingCard" class="card hidden" style="text-align: center; padding: 24px;">
+        <div class="spinner" style="width: 32px; height: 32px; margin: 0 auto 10px auto; border-width: 3px;"></div>
+        <div style="font-size: 14px; font-weight: 800; color: var(--accent-sky);">Sedang merender gambar AI...</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Proses memakan waktu sekitar 5–10 detik.</div>
+      </div>
+
+      <div id="aiResultCard" class="card hidden" style="text-align: center;">
+        <img id="aiGeneratedImg" alt="Hasil Gambar AI" style="max-width:100%; border-radius:10px; border:1px solid var(--border-color); box-shadow:0 4px 15px rgba(0,0,0,0.5);">
+        <div class="grid-2" style="margin-top: 8px;">
+          <a id="btnAiOpen" class="btn btn-success" href="#" target="_blank">💾 Buka / Download Gambar</a>
+          <button class="btn" onclick="generateAiImage(true)">🎲 Acak Variasi Baru</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODUL 2: HUB PEMBANDING HARGA MARKETPLACE -->
+    <div id="panelOlshop" class="hidden" style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="card">
+        <div class="card-title">🛍️ Hub Pembanding Harga Marketplace</div>
+        <label for="mpItemQuery">Ketik Nama Barang yang Dicari:</label>
+        <input type="text" id="mpItemQuery" class="input-field" placeholder="Contoh: case infinix gt, sepatu running...">
+
+        <div class="grid-2">
+          <button class="btn btn-shopee" onclick="searchMarketplace('shopee')">🧡 Shopee</button>
+          <button class="btn btn-tokopedia" onclick="searchMarketplace('tokopedia')">💚 Tokopedia</button>
+          <button class="btn btn-tiktok" onclick="searchMarketplace('tiktok')">🖤 TikTok Shop</button>
+          <button class="btn btn-lazada" onclick="searchMarketplace('lazada')">💙 Lazada</button>
+          <button class="btn btn-bukalapak" onclick="searchMarketplace('bukalapak')">❤️ Bukalapak</button>
+          <button class="btn btn-blibli" onclick="searchMarketplace('blibli')">💙 Blibli</button>
+        </div>
+        <button class="btn btn-primary" onclick="searchMarketplaceAll()">🚀 Buka Semua Sekaligus</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📊 Catatan & Tabel Pembanding Harga</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <input type="text" id="trackName" class="input-field" placeholder="Nama Barang / Toko">
+          <div class="grid-2">
+            <input type="text" id="trackMP" class="input-field" placeholder="Marketplace (misal: TikTok)">
+            <input type="number" id="trackPrice" class="input-field" placeholder="Harga Total (Rp)">
+          </div>
+          <button class="btn btn-success" onclick="addPriceRecord()">➕ Simpan ke Tabel Pembanding</button>
+        </div>
+
+        <div class="table-container" style="margin-top: 8px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Barang / Toko</th>
+                <th>Marketplace</th>
+                <th>Harga</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="priceTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODUL 3: GOOGLE DRIVE DIRECT LINK GENERATOR -->
+    <div id="panelDrivelink" class="hidden" style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="card">
+        <div class="card-title">🔗 Google Drive Direct Link Generator</div>
+        <label for="driveUrlInput">Tempelkan Link Berbagi Google Drive:</label>
+        <input type="text" id="driveUrlInput" class="input-field" placeholder="Contoh: https://drive.google.com/file/d/1Eqk.../view">
+
+        <button class="btn btn-primary" onclick="convertDriveLink()">🚀 Ubah Jadi Direct Link Stream</button>
+
+        <div id="driveResultCard" class="hidden" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+          <label>Direct Stream/Download Link:</label>
+          <input type="text" id="driveDirectUrl" class="input-field" readonly style="color: var(--accent-gold);">
+
+          <div class="grid-2">
+            <button class="btn btn-success" onclick="copyDriveLink()">📋 Salin Link Direct</button>
+            <a id="btnDriveOpen" class="btn" href="#" target="_blank">🔗 Buka / Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODUL 4: HUB BERITA & SOSMED -->
+    <div id="panelBerita" class="hidden" style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="card">
+        <div class="card-title">📰 Hub Berita & Sosmed</div>
+        <label for="newsTopicQuery">Ketik Topik / Kata Kunci Berita:</label>
+        <input type="text" id="newsTopicQuery" class="input-field" placeholder="Contoh: Real Madrid, Timnas Indonesia, AI terbaru...">
+
+        <div class="grid-2">
+          <button class="btn btn-gnews" onclick="searchMedia('gnews')">📰 Google News</button>
+          <button class="btn btn-twitter" onclick="searchMedia('twitter')">𝕏 Twitter / X</button>
+          <button class="btn btn-youtube" onclick="searchMedia('youtube')">🔴 YouTube</button>
+          <button class="btn btn-tiktok" onclick="searchMedia('tiktok')">🖤 TikTok</button>
+          <button class="btn btn-instagram" onclick="searchMedia('instagram')">📸 Instagram</button>
+          <button class="btn btn-detik" onclick="searchMedia('detik')">🌐 Detikcom</button>
+        </div>
+        <button class="btn btn-primary" onclick="searchMediaAll()">🚀 Buka Semua Platform</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📌 Simpan Ringkasan & Bookmark Berita</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <input type="text" id="bmTitle" class="input-field" placeholder="Judul / Topik Berita">
+          <input type="text" id="bmSource" class="input-field" placeholder="Sumber (misal: Twitter, Detik, YouTube)">
+          <input type="text" id="bmNote" class="input-field" placeholder="Catatan singkat / Ringkasan info">
+          <button class="btn btn-success" onclick="addBookmarkRecord()">➕ Simpan Catatan Berita</button>
+        </div>
+
+        <div class="table-container" style="margin-top: 8px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Topik / Judul</th>
+                <th>Sumber</th>
+                <th>Catatan</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="bookmarkTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODUL 5: PEMENDEK LINK MULTI-SERVER -->
+    <div id="panelShortlink" class="hidden" style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="card">
+        <div class="card-title">✂️ Pemendek Link Multi-Server</div>
+        <label for="longUrlInput">Masukkan Link Panjang:</label>
+        <input type="text" id="longUrlInput" class="input-field" placeholder="https://contoh.com/link-sangat-panjang">
+
+        <button id="btnShorten" class="btn btn-primary" onclick="processShortenLink()">Pendekkan Link 🚀</button>
+        <div id="shortStatusLog" style="font-size: 11px; color: var(--accent-sky); text-align: center; margin-top: 4px; font-style: italic;"></div>
+
+        <div id="shortResultCard" class="hidden" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+          <label>Link Pendek Berhasil Dibuat:</label>
+          <a id="shortUrlA" href="#" target="_blank" style="color: var(--accent-gold); font-weight: 800; word-break: break-all; font-size: 15px;"></a>
+
+          <div class="grid-2">
+            <button class="btn btn-success" onclick="copyShortLink()">📋 Salin Link</button>
+            <a id="btnShortOpen" class="btn" href="#" target="_blank">🔗 Buka Link</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODUL 6: MA TEMP MAIL -->
+    <div id="panelTempmail" class="hidden" style="display: flex; flex-direction: column; gap: 14px;">
+      <div id="mailMainView">
+        <div class="card">
+          <div class="card-title">📧 MA Temp Mail (Email Sementara Instan)</div>
+          <div class="email-box">
+            <div id="tempEmailAddress" class="email-address">Membuat alamat...</div>
+            <button id="tempCopyBtn" class="btn" style="width: auto; padding: 8px 12px; min-height: 36px;" onclick="copyTempEmail()" disabled>📋 Copy</button>
+          </div>
+
+          <div class="grid-2" style="margin-top: 4px;">
+            <button id="tempNewBtn" class="btn btn-primary" onclick="createNewMailbox()">＋ Email Baru</button>
+            <button id="tempRefreshBtn" class="btn" onclick="loadTempInbox()">↻ Refresh Inbox</button>
+          </div>
+          <div id="tempMailStatus" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+            <span class="spinner"></span> Menyiapkan mailbox...
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="justify-content: space-between;">
+            <span>📥 Inbox Masuk</span>
+            <span id="tempMailCount" style="font-size: 11px; color: var(--accent-gold);">0 email</span>
+          </div>
+          <div id="tempInboxList" style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 12px;">Menunggu email masuk...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- READER VIEW TEMP MAIL -->
+      <div id="mailReaderView" class="hidden">
+        <button class="btn" style="margin-bottom: 10px;" onclick="closeTempReader()">← Kembali ke Inbox</button>
+        <div class="card">
+          <div id="tempReaderSubject" class="card-title" style="font-size: 16px; color: var(--text-main);">Subjek Email</div>
+          <div id="tempReaderMeta" style="font-size: 11px; color: var(--text-muted); line-height: 1.6; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;"></div>
+          <div id="tempReaderBody" style="font-size: 13px; line-height: 1.6; overflow-x: auto; margin-top: 8px; user-select: text;"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast">Notifikasi</div>
+
+  <script>
+    const toast = document.getElementById('toast');
+
+    function showToast(msg) {
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // --- TAB SWITCHER ---
+    function switchTab(tab, e) {
+      document.querySelectorAll('.source-tab-btn').forEach(btn => btn.classList.remove('active'));
+      if (e) e.target.classList.add('active');
+
+      const panels = ['Aigambar', 'Olshop', 'Drivelink', 'Berita', 'Shortlink', 'Tempmail'];
+      panels.forEach(p => {
+        const el = document.getElementById(`panel${p}`);
+        if (el) el.classList.add('hidden');
+      });
+
+      const activePanel = document.getElementById(`panel${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+      if (activePanel) activePanel.classList.remove('hidden');
+    }
+
+    // --- MODUL 1: AI GENERATOR GAMBAR LOGIC ---
+    let currentAiImageUrl = '';
+
+    function setAiPrompt(text) {
+      document.getElementById('aiPromptInput').value = text;
+    }
+
+    function generateAiImage(randomize = false) {
+      const promptInput = document.getElementById('aiPromptInput');
+      const promptText = promptInput.value.trim();
+
+      if (!promptText) return showToast("Ketik deskripsi gambar terlebih dahulu!");
+
+      let width = 1024, height = 1024;
+      const ratio = document.getElementById('aiAspectRatio').value;
+
+      if (ratio === '16:9') { width = 1024; height = 576; }
+      else if (ratio === '9:16') { width = 576; height = 1024; }
+
+      const model = document.getElementById('aiModelSelect').value;
+      const seed = randomize ? Math.floor(Math.random() * 1000000) : 42;
+
+      const encodedPrompt = encodeURIComponent(promptText);
+      currentAiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&model=${model}&nologo=true`;
+
+      const loadingCard = document.getElementById('aiLoadingCard');
+      const resultCard = document.getElementById('aiResultCard');
+      const img = document.getElementById('aiGeneratedImg');
+      const btnOpen = document.getElementById('btnAiOpen');
+
+      loadingCard.classList.remove('hidden');
+      resultCard.classList.add('hidden');
+      showToast("Sedang merender gambar AI...");
+
+      img.src = currentAiImageUrl;
+      btnOpen.href = currentAiImageUrl;
+
+      img.onload = () => {
+        loadingCard.classList.add('hidden');
+        resultCard.classList.remove('hidden');
+        showToast("Gambar AI berhasil dibuat!");
+      };
+
+      img.onerror = () => {
+        loadingCard.classList.add('hidden');
+        showToast("Gagal memuat gambar. Pastikan koneksi terhubung!");
+      };
+    }
+
+    // --- MODUL 2: MARKETPLACE COMPARISON LOGIC ---
+    function searchMarketplace(platform) {
+      const q = document.getElementById('mpItemQuery').value.trim();
+      if (!q) return showToast("Ketik nama barang terlebih dahulu!");
+      const encoded = encodeURIComponent(q);
+
+      let url = '';
+      if (platform === 'shopee') url = `https://shopee.co.id/search?keyword=${encoded}`;
+      if (platform === 'tokopedia') url = `https://www.tokopedia.com/search?st=product&q=${encoded}`;
+      if (platform === 'tiktok') url = `https://www.google.com/search?q=site:tiktok.com/shop+${encoded}+or+tiktok+shop+${encoded}`;
+      if (platform === 'lazada') url = `https://www.lazada.co.id/catalog/?q=${encoded}`;
+      if (platform === 'bukalapak') url = `https://www.bukalapak.com/products?search%5Bkeywords%5D=${encoded}`;
+      if (platform === 'blibli') url = `https://www.blibli.com/cari/${encoded}`;
+
+      window.open(url, '_blank');
+    }
+
+    function searchMarketplaceAll() {
+      const q = document.getElementById('mpItemQuery').value.trim();
+      if (!q) return showToast("Ketik nama barang terlebih dahulu!");
+      const encoded = encodeURIComponent(q);
+
+      window.open(`https://shopee.co.id/search?keyword=${encoded}`, '_blank');
+      window.open(`https://www.tokopedia.com/search?st=product&q=${encoded}`, '_blank');
+      window.open(`https://www.google.com/search?q=site:tiktok.com/shop+${encoded}+or+tiktok+shop+${encoded}`, '_blank');
+      window.open(`https://www.lazada.co.id/catalog/?q=${encoded}`, '_blank');
+    }
+
+    function addPriceRecord() {
+      const name = document.getElementById('trackName').value.trim();
+      const mp = document.getElementById('trackMP').value.trim();
+      const price = parseFloat(document.getElementById('trackPrice').value);
+
+      if (!name || !mp || isNaN(price)) return showToast("Lengkapi nama toko, marketplace, dan nominal!");
+
+      const records = JSON.parse(localStorage.getItem('price_records') || '[]');
+      records.push({ id: Date.now(), name, mp, price });
+      localStorage.setItem('price_records', JSON.stringify(records));
+
+      document.getElementById('trackName').value = '';
+      document.getElementById('trackMP').value = '';
+      document.getElementById('trackPrice').value = '';
+
+      renderPriceTable();
+      showToast("Catatan harga tersimpan!");
+    }
+
+    function renderPriceTable() {
+      const records = JSON.parse(localStorage.getItem('price_records') || '[]');
+      const tbody = document.getElementById('priceTableBody');
+
+      if (records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Belum ada catatan harga.</td></tr>';
+        return;
+      }
+
+      const minPrice = Math.min(...records.map(r => r.price));
+
+      tbody.innerHTML = records.map(r => {
+        const isCheapest = r.price === minPrice;
+        return `
+          <tr>
+            <td>${r.name}</td>
+            <td>${r.mp}</td>
+            <td class="${isCheapest ? 'cheapest' : ''}">
+              Rp ${r.price.toLocaleString('id-ID')} ${isCheapest ? '⭐ (Termurah)' : ''}
+            </td>
+            <td><button class="btn btn-danger" style="padding:4px 8px; font-size:10px; min-height:28px;" onclick="deletePriceRecord(${r.id})">Hapus</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function deletePriceRecord(id) {
+      let records = JSON.parse(localStorage.getItem('price_records') || '[]');
+      records = records.filter(r => r.id !== id);
+      localStorage.setItem('price_records', JSON.stringify(records));
+      renderPriceTable();
+    }
+
+    // --- MODUL 3: DRIVE LINK LOGIC ---
+    function convertDriveLink() {
+      const input = document.getElementById('driveUrlInput').value.trim();
+      const regex = /\/d\/([a-zA-Z0-9_-]+)|id=([a-zA-Z0-9_-]+)/;
+      const match = input.match(regex);
+
+      if (match) {
+        const fileId = match[1] || match[2];
+        const directUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        
+        document.getElementById('driveDirectUrl').value = directUrl;
+        document.getElementById('btnDriveOpen').href = directUrl;
+        document.getElementById('driveResultCard').classList.remove('hidden');
+        showToast("Link direct berhasil dibuat!");
+      } else {
+        showToast("Link Google Drive tidak valid!");
+      }
+    }
+
+    function copyDriveLink() {
+      const copyText = document.getElementById('driveDirectUrl');
+      navigator.clipboard.writeText(copyText.value).then(() => showToast("Direct link disalin!"));
+    }
+
+    // --- MODUL 4: HUB BERITA LOGIC ---
+    function searchMedia(platform) {
+      const q = document.getElementById('newsTopicQuery').value.trim();
+      if (!q) return showToast("Ketik topik berita terlebih dahulu!");
+      const encoded = encodeURIComponent(q);
+
+      let url = '';
+      if (platform === 'gnews') url = `https://news.google.com/search?q=${encoded}&hl=id&gl=ID&ceid=ID:id`;
+      if (platform === 'twitter') url = `https://x.com/search?q=${encoded}&f=live`;
+      if (platform === 'youtube') url = `https://www.youtube.com/results?search_query=${encoded}`;
+      if (platform === 'tiktok') url = `https://www.google.com/search?q=site:tiktok.com+${encoded}`;
+      if (platform === 'instagram') url = `https://www.google.com/search?q=site:instagram.com+${encoded}`;
+      if (platform === 'detik') url = `https://www.detik.com/search/searchall?query=${encoded}`;
+
+      window.open(url, '_blank');
+    }
+
+    function searchMediaAll() {
+      const q = document.getElementById('newsTopicQuery').value.trim();
+      if (!q) return showToast("Ketik topik berita terlebih dahulu!");
+      const encoded = encodeURIComponent(q);
+
+      window.open(`https://news.google.com/search?q=${encoded}&hl=id&gl=ID&ceid=ID:id`, '_blank');
+      window.open(`https://x.com/search?q=${encoded}&f=live`, '_blank');
+      window.open(`https://www.youtube.com/results?search_query=${encoded}`, '_blank');
+      window.open(`https://www.google.com/search?q=site:tiktok.com+${encoded}`, '_blank');
+    }
+
+    function addBookmarkRecord() {
+      const title = document.getElementById('bmTitle').value.trim();
+      const source = document.getElementById('bmSource').value.trim();
+      const note = document.getElementById('bmNote').value.trim();
+
+      if (!title || !source) return showToast("Isi judul berita dan sumbernya!");
+
+      const records = JSON.parse(localStorage.getItem('news_bookmarks') || '[]');
+      records.push({ id: Date.now(), title, source, note: note || '-' });
+      localStorage.setItem('news_bookmarks', JSON.stringify(records));
+
+      document.getElementById('bmTitle').value = '';
+      document.getElementById('bmSource').value = '';
+      document.getElementById('bmNote').value = '';
+
+      renderBookmarkTable();
+      showToast("Catatan berita tersimpan!");
+    }
+
+    function renderBookmarkTable() {
+      const records = JSON.parse(localStorage.getItem('news_bookmarks') || '[]');
+      const tbody = document.getElementById('bookmarkTableBody');
+
+      if (records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Belum ada berita tersimpan.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = records.map(r => `
+        <tr>
+          <td style="font-weight:700; color:var(--text-main);">${r.title}</td>
+          <td style="color:var(--accent-sky);">${r.source}</td>
+          <td style="color:var(--text-muted);">${r.note}</td>
+          <td><button class="btn btn-danger" style="padding:4px 8px; font-size:10px; min-height:28px;" onclick="deleteBookmarkRecord(${r.id})">Hapus</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function deleteBookmarkRecord(id) {
+      let records = JSON.parse(localStorage.getItem('news_bookmarks') || '[]');
+      records = records.filter(r => r.id !== id);
+      localStorage.setItem('news_bookmarks', JSON.stringify(records));
+      renderBookmarkTable();
+    }
+
+    // --- MODUL 5: PEMENDEK LINK MULTI-SERVER LOGIC ---
+    async function apiGoTiny(url) {
+      const res = await fetch('https://gotiny.cc/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: url })
+      });
+      if (!res.ok) throw new Error('Status ' + res.status);
+      const data = await res.json();
+      if (data && data[0] && data[0].code) return 'https://gotiny.cc/' + data[0].code;
+      throw new Error('Respon tidak valid');
+    }
+
+    async function apiSpooMe(url) {
+      const bodyData = new URLSearchParams();
+      bodyData.append('url', url);
+      const res = await fetch('https://spoo.me/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+        body: bodyData
+      });
+      if (!res.ok) throw new Error('Status ' + res.status);
+      const data = await res.json();
+      if (data && data.short_url) return data.short_url;
+      throw new Error('Respon tidak valid');
+    }
+
+    async function apiShrtr(url) {
+      const res = await fetch('https://shrtr.top/api/v1/shorten', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url })
+      });
+      if (!res.ok) throw new Error('Status ' + res.status);
+      const data = await res.json();
+      if (data && data.short_url) return data.short_url;
+      throw new Error('Respon tidak valid');
+    }
+
+    async function processShortenLink() {
+      let url = document.getElementById('longUrlInput').value.trim();
+      const statusLog = document.getElementById('shortStatusLog');
+      const resultCard = document.getElementById('shortResultCard');
+      const shortUrlA = document.getElementById('shortUrlA');
+      const btnOpen = document.getElementById('btnShortOpen');
+      const btnShorten = document.getElementById('btnShorten');
+
+      resultCard.classList.add('hidden');
+      statusLog.innerText = '';
+
+      if (!url) return showToast("Harap masukkan link/URL terlebih dahulu!");
+
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+        document.getElementById('longUrlInput').value = url;
+      }
+
+      btnShorten.disabled = true;
+      btnShorten.innerText = 'Memproses... ⏳';
+
+      const servers = [
+        { name: 'GoTiny', fn: apiGoTiny },
+        { name: 'Spoo.me', fn: apiSpooMe },
+        { name: 'Shrtr', fn: apiShrtr }
+      ];
+
+      let shortResult = null;
+
+      for (let server of servers) {
+        try {
+          statusLog.innerText = `Mencoba server (${server.name})...`;
+          shortResult = await server.fn(url);
+          if (shortResult) break;
+        } catch (e) {
+          console.warn(`Server ${server.name} gagal.`);
+        }
+      }
+
+      if (shortResult) {
+        statusLog.innerText = '';
+        shortUrlA.href = shortResult;
+        shortUrlA.innerText = shortResult;
+        btnOpen.href = shortResult;
+        resultCard.classList.remove('hidden');
+        showToast("Link pendek berhasil dibuat!");
+      } else {
+        statusLog.innerText = '';
+        showToast("Gagal memendekkan link di semua server.");
+      }
+
+      btnShorten.disabled = false;
+      btnShorten.innerText = 'Pendekkan Link 🚀';
+    }
+
+    function copyShortLink() {
+      const url = document.getElementById('shortUrlA').href;
+      navigator.clipboard.writeText(url).then(() => showToast("Link pendek disalin!"));
+    }
+
+    // --- MODUL 6: MA TEMP MAIL LOGIC ---
+    const TEMP_API = 'https://api.tempmailportal.com';
+    let tempToken = '', tempAddress = '', tempMessages = [], tempTimer = null;
+
+    function setTempStatus(t, loading = false) {
+      document.getElementById('tempMailStatus').innerHTML = (loading ? '<span class="spinner"></span> ' : '') + t;
+    }
+
+    function tempAuthHeaders() {
+      return tempToken ? { Authorization: 'Bearer ' + tempToken } : {};
+    }
+
+    async function tempApi(path, opts = {}) {
+      const headers = { Accept: 'application/json', ...(opts.headers || {}) };
+      if (opts.body) headers['Content-Type'] = 'application/json';
+      Object.assign(headers, tempAuthHeaders());
+      const r = await fetch(TEMP_API + path, { ...opts, headers });
+      if (!r.ok) {
+        let msg = 'HTTP ' + r.status;
+        try { msg = (await r.json()).error || msg; } catch {}
+        throw Error(msg);
+      }
+      return r.status === 204 ? null : r.json();
+    }
+
+    async function createNewMailbox() {
+      clearInterval(tempTimer);
+      tempToken = ''; tempAddress = '';
+      document.getElementById('tempNewBtn').disabled = true;
+      document.getElementById('tempCopyBtn').disabled = true;
+      document.getElementById('tempEmailAddress').innerText = 'Membuat alamat...';
+      document.getElementById('tempInboxList').innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">Menyiapkan mailbox...</div>';
+      setTempStatus('Membuat alamat email...', true);
+
+      try {
+        const x = await tempApi('/api/inbox', { method: 'POST' });
+        tempAddress = x.address;
+        tempToken = x.token;
+
+        document.getElementById('tempEmailAddress').innerText = tempAddress;
+        document.getElementById('tempCopyBtn').disabled = false;
+
+        localStorage.setItem('ma_temp_session', JSON.stringify({ address: tempAddress, token: tempToken }));
+        tempMessages = [];
+        renderTempInbox();
+        setTempStatus('Mailbox aktif • menunggu email');
+        await loadTempInbox();
+        tempTimer = setInterval(loadTempInbox, 10000);
+      } catch (e) {
+        document.getElementById('tempEmailAddress').innerText = 'Gagal membuat email';
+        setTempStatus('Gagal: ' + e.message);
+      } finally {
+        document.getElementById('tempNewBtn').disabled = false;
+      }
+    }
+
+    async function loadTempInbox() {
+      if (!tempToken) return;
+      document.getElementById('tempRefreshBtn').disabled = true;
+      try {
+        const data = await tempApi('/api/messages');
+        tempMessages = Array.isArray(data) ? data : [];
+        renderTempInbox();
+        setTempStatus(tempMessages.length ? 'Inbox diperbarui ✓' : 'Mailbox aktif • belum ada email');
+      } catch (e) {
+        setTempStatus('Inbox gagal dimuat: ' + e.message);
+      } finally {
+        document.getElementById('tempRefreshBtn').disabled = false;
+      }
+    }
+
+    function renderTempInbox() {
+      document.getElementById('tempMailCount').innerText = tempMessages.length + ' email';
+      const container = document.getElementById('tempInboxList');
+
+      if (!tempMessages.length) {
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">📭 Belum ada email masuk.<br>Inbox otomatis dicek setiap 10 detik.</div>';
+        return;
+      }
+
+      container.innerHTML = tempMessages.map((m, i) => `
+        <div class="mail-card" onclick="openTempMessage(${i})">
+          <div class="mail-from">${m.fromName ? m.fromName + ' • ' : ''}${m.from || 'Unknown'}</div>
+          <div class="mail-subject">${m.subject || '(Tanpa subjek)'}</div>
+          <div class="mail-date">${new Date(m.date).toLocaleString('id-ID')}</div>
+        </div>
+      `).join('');
+    }
+
+    async function openTempMessage(i) {
+      const m = tempMessages[i];
+      try {
+        const full = await tempApi('/api/messages/' + encodeURIComponent(m.id));
+        document.getElementById('tempReaderSubject').innerText = full.subject || '(Tanpa subjek)';
+        document.getElementById('tempReaderMeta').innerHTML = `
+          Dari: <strong>${full.fromName ? full.fromName + ' (' + full.from + ')' : full.from}</strong><br>
+          Waktu: ${new Date(full.date).toLocaleString('id-ID')}
+        `;
+        document.getElementById('tempReaderBody').innerHTML = full.html || `<pre style="white-space:pre-wrap; font-family:inherit;">${full.text || 'Tidak ada isi.'}</pre>`;
+        
+        document.getElementById('mailMainView').classList.add('hidden');
+        document.getElementById('mailReaderView').classList.remove('hidden');
+      } catch (e) {
+        showToast("Gagal membuka email: " + e.message);
+      }
+    }
+
+    function closeTempReader() {
+      document.getElementById('mailReaderView').classList.add('hidden');
+      document.getElementById('mailMainView').classList.remove('hidden');
+    }
+
+    function copyTempEmail() {
+      if (!tempAddress) return;
+      navigator.clipboard.writeText(tempAddress).then(() => showToast("Alamat email disalin!"));
+    }
+
+    function restoreTempSession() {
+      try {
+        const x = JSON.parse(localStorage.getItem('ma_temp_session') || 'null');
+        if (x?.token && x?.address) {
+          tempToken = x.token;
+          tempAddress = x.address;
+          document.getElementById('tempEmailAddress').innerText = tempAddress;
+          document.getElementById('tempCopyBtn').disabled = false;
+          setTempStatus('Mailbox dipulihkan • mengecek inbox', true);
+          loadTempInbox();
+          tempTimer = setInterval(loadTempInbox, 10000);
+          return true;
+        }
+      } catch {}
+      return false;
+    }
+
+    // Inisialisasi awal
+    renderPriceTable();
+    renderBookmarkTable();
+    if (!restoreTempSession()) createNewMailbox();
+  </script>
+</body>
+</html>
