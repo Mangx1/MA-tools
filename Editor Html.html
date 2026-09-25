@@ -2,31 +2,44 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- viewport-fit=cover wajib agar env(safe-area-inset) berfungsi di Android WebView -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Visual HTML Editor Mobile Compact</title>
   <style>
     * { box-sizing: border-box; }
-    body {
-      margin: 0; padding: 0;
+    
+    html, body {
+      width: 100% !important;
+      height: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: #0f172a;
+      background: #0f172a !important;
       color: #f8fafc;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
     }
 
-    /* TOP BAR MINIMALIS (Sangat Ringkas) */
+    body {
+      display: flex !important;
+      flex-direction: column !important;
+      position: absolute !important;
+      top: 0; bottom: 0; left: 0; right: 0;
+    }
+
+    /* TOP BAR MINIMALIS (Menyesuaikan Safe Area Atas / Status Bar) */
     .mobile-header {
+      flex: 0 0 auto !important;
       background: #1e293b;
-      padding: 35px 10px 8px 10px; /* Menyesuaikan Safe Area Notch HP */
+      /* Padding dinamis mengikuti status bar / notch HP */
+      padding-top: max(12px, env(safe-area-inset-top)) !important;
+      padding-left: max(10px, env(safe-area-inset-left)) !important;
+      padding-right: max(10px, env(safe-area-inset-right)) !important;
+      padding-bottom: 10px !important;
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid #334155;
       z-index: 100;
-      flex-shrink: 0;
     }
 
     .mobile-header .brand-title {
@@ -62,28 +75,32 @@
     .btn-icon.danger { background: #ef4444; color: white; }
     .btn-icon.amber { background: #d97706; color: white; }
 
-    /* AREA WORKSPACE / CANVAS (Luas & Dominan) */
+    /* AREA WORKSPACE / CANVAS */
     #editor-workspace {
-      flex: 1;
-      overflow-y: auto;
-      padding: 12px 8px;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      background: #475569;
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      height: 0 !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px 8px !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: flex-start !important;
+      background: #475569 !important;
     }
 
     #canvas-frame {
-      background: #ffffff;
+      background: #ffffff !important;
       color: #0f172a;
-      width: 100%;
+      width: 100% !important;
       max-width: 380px;
-      min-height: 80vh;
+      min-height: 75vh;
       border-radius: 12px;
       padding: 12px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.3);
       position: relative;
       transition: max-width 0.3s ease;
+      box-sizing: border-box !important;
     }
 
     /* Penanda Elemen Terpilih */
@@ -102,14 +119,14 @@
       outline: 1px dashed #d97706 !important;
     }
 
-    /* BOTTOM DOCK & PANEL EDIT (Ramah Jempol) */
+    /* BOTTOM DOCK & PANEL EDIT */
     .bottom-dock {
+      flex: 0 0 auto !important;
       background: #1e293b;
       border-top: 1px solid #334155;
       display: flex;
       flex-direction: column;
       z-index: 100;
-      flex-shrink: 0;
       box-shadow: 0 -4px 15px rgba(0,0,0,0.3);
     }
 
@@ -134,7 +151,7 @@
       font-weight: 600;
     }
 
-    /* Action Panel yang Ringkas */
+    /* Action Panel */
     #action-toolbar {
       display: none;
       flex-direction: column;
@@ -195,12 +212,16 @@
       width: 14px; height: 14px; border: none; cursor: pointer; background: transparent; margin-left: 4px;
     }
 
-    /* Navigation Dock Utama (Selalu Ada di Bawah) */
+    /* Navigation Dock Utama (Menyesuaikan Safe Area Bawah / Bar Navigasi HP) */
     .main-nav-dock {
       display: flex;
       justify-content: space-around;
       align-items: center;
-      padding: 6px 4px 12px 4px;
+      padding-top: 8px;
+      padding-left: 4px;
+      padding-right: 4px;
+      /* Menghindari tertutup tombol sistem Android / gestur layar bawah */
+      padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
       background: #0f172a;
     }
     .nav-item {
@@ -243,6 +264,7 @@
       width: 100% !important; height: 180px !important;
       font-family: monospace; padding: 8px; border: 1px solid #cbd5e1;
       border-radius: 6px; font-size: 11px; margin: 8px 0; display: block;
+      color: #0f172a; background: #ffffff;
     }
     .component-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0; }
     .component-btn {
@@ -277,7 +299,7 @@
     </div>
   </div>
 
-  <!-- Area Workspace Canvas (Maksimal & Sisa Layar Utama) -->
+  <!-- Area Workspace Canvas -->
   <div id="editor-workspace">
     <div id="canvas-frame">
       <div style="text-align: center; padding: 30px; color: #64748b;">
@@ -297,10 +319,10 @@
     <!-- Toolbar Aksi Elemen Terpilih -->
     <div id="action-toolbar">
       <div class="tool-tabs">
-        <button class="tool-tab-btn active" onclick="switchTab('tab-gaya')">🎨 Gaya Teks</button>
-        <button class="tool-tab-btn" onclick="switchTab('tab-posisi')">📐 Posisi & Ukuran</button>
-        <button class="tool-tab-btn" onclick="switchTab('tab-aksi')">⚡ Aksi & Warna</button>
-        <button class="tool-tab-btn" onclick="switchTab('tab-kode')">⚙️ Kode/Lanjutan</button>
+        <button class="tool-tab-btn active" onclick="switchTab('tab-gaya', event)">🎨 Gaya Teks</button>
+        <button class="tool-tab-btn" onclick="switchTab('tab-posisi', event)">📐 Posisi & Ukuran</button>
+        <button class="tool-tab-btn" onclick="switchTab('tab-aksi', event)">⚡ Aksi & Warna</button>
+        <button class="tool-tab-btn" onclick="switchTab('tab-kode', event)">⚙️ Kode/Lanjutan</button>
       </div>
 
       <!-- Tab 1: Gaya Teks -->
@@ -381,7 +403,7 @@
     </div>
   </div>
 
-  <!-- Modal Tree View / Layer Explorer -->
+  <!-- Modal Tree View -->
   <div id="treeModal" class="modal">
     <div class="modal-content">
       <h3>🌳 Tree View / Navigasi Layer</h3>
@@ -545,8 +567,7 @@
     let isPreviewMode = false;
     let isHiddenShown = false;
 
-    // TAB SYSTEM DOCK
-    function switchTab(tabId) {
+    function switchTab(tabId, e) {
       document.getElementById('tab-gaya').style.display = 'none';
       document.getElementById('tab-posisi').style.display = 'none';
       document.getElementById('tab-aksi').style.display = 'none';
@@ -555,10 +576,9 @@
       document.querySelectorAll('.tool-tab-btn').forEach(btn => btn.classList.remove('active'));
 
       document.getElementById(tabId).style.display = 'grid';
-      event.currentTarget.classList.add('active');
+      if(e && e.currentTarget) e.currentTarget.classList.add('active');
     }
 
-    // MODAL HANDLERS
     function openMenuModal() { document.getElementById('menuModal').style.display = 'block'; }
     function closeMenuModal() { document.getElementById('menuModal').style.display = 'none'; }
 
@@ -574,7 +594,6 @@
     function openAddModal() { document.getElementById('addModal').style.display = 'block'; }
     function closeAddModal() { document.getElementById('addModal').style.display = 'none'; }
 
-    // DOWNLOAD FILE
     function generateFullHTML() {
       const cloneCanvas = canvas.cloneNode(true);
       cloneCanvas.querySelectorAll('.editor-selected').forEach(el => {
@@ -608,7 +627,6 @@ ${cloneCanvas.innerHTML.trim()}
       document.body.removeChild(a);
     }
 
-    // SCALING & EDITING
     function scaleElement(factor) {
       if (!selectedEl) return;
       const compStyle = window.getComputedStyle(selectedEl);
@@ -687,7 +705,6 @@ ${cloneCanvas.innerHTML.trim()}
       closeElemCodeModal();
     }
 
-    // TREE VIEW
     function openTreeModal() {
       const container = document.getElementById('treeContainer');
       container.innerHTML = '';
@@ -715,36 +732,47 @@ ${cloneCanvas.innerHTML.trim()}
     }
 
     function applyImportHTML() {
-      const code = document.getElementById('importInput').value;
-      if (code && code.trim() !== '') {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(code, 'text/html');
+      try {
+        const code = document.getElementById('importInput').value;
+        if (code && code.trim() !== '') {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(code, 'text/html');
 
-        importedStylesContainer.innerHTML = '';
-        importedScriptsContainer.innerHTML = '';
-        originalHeadNodes = [];
+          importedStylesContainer.innerHTML = '';
+          importedScriptsContainer.innerHTML = '';
+          originalHeadNodes = [];
 
-        if (doc.head) {
-          doc.head.childNodes.forEach(node => {
-            originalHeadNodes.push(node.cloneNode(true));
-            if (node.tagName !== 'SCRIPT') importedStylesContainer.appendChild(node.cloneNode(true));
+          if (doc.head) {
+            Array.from(doc.head.childNodes).forEach(node => {
+              originalHeadNodes.push(node.cloneNode(true));
+              if (node.tagName && node.tagName.toUpperCase() !== 'SCRIPT') {
+                importedStylesContainer.appendChild(node.cloneNode(true));
+              }
+            });
+          }
+
+          let bodyContent = doc.body ? doc.body.innerHTML : code;
+          canvas.innerHTML = bodyContent;
+
+          const allScripts = doc.querySelectorAll('script');
+          allScripts.forEach(oldScript => {
+            try {
+              const newScript = document.createElement('script');
+              Array.from(oldScript.attributes || []).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+              if (oldScript.innerHTML) newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+              importedScriptsContainer.appendChild(newScript);
+            } catch (sErr) {
+              console.warn("Eksekusi script dilewati:", sErr);
+            }
           });
+
+          deselectElement();
+          saveHistory();
         }
-
-        canvas.innerHTML = doc.body ? doc.body.innerHTML : code;
-
-        const allScripts = doc.querySelectorAll('script');
-        allScripts.forEach(oldScript => {
-          const newScript = document.createElement('script');
-          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-          if (oldScript.innerHTML) newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-          importedScriptsContainer.appendChild(newScript);
-        });
-
-        deselectElement();
-        saveHistory();
+        closeImportModal();
+      } catch (err) {
+        alert("Gagal memuat HTML di WebView: " + err.message);
       }
-      closeImportModal();
     }
 
     function togglePreviewMode() {
