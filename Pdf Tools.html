@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Kertas PDF Tools — iLovePDF Clone Pro</title>
+<title>Kertas PDF Tools Pro</title>
 
 <!-- Library Penunjang PDF Client-Side -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -31,14 +31,13 @@ body{
   padding-bottom: max(32px, env(safe-area-inset-bottom));
 }
 
-/* Header Disesuaikan Jauh dari Status Bar HP */
+/* Header Safe Area Status Bar HP */
 header{
   min-height:60px;
   background:#ffffff;
   border-bottom:1px solid var(--border);
   display:flex;
   align-items:center;
-  /* Padding-top ditingkatkan agar tidak bertumpuk dengan jam/bar HP */
   padding-top: max(48px, calc(env(safe-area-inset-top) + 32px)) !important;
   padding-bottom: 16px;
   padding-left: max(20px, env(safe-area-inset-left));
@@ -85,7 +84,7 @@ header{
 .upload-box:active{border-color:var(--primary);background:#e2e8f0}
 
 /* Form Elements */
-label{display:block;font-size:13px;color:var(--text-muted);margin:12px 0 6px}
+label{display:block;font-size:13px;font-weight:600;color:var(--text);margin:12px 0 6px}
 input[type=text], input[type=number], select{width:100%;padding:12px;background:#ffffff;border:1px solid #cbd5e1;border-radius:10px;color:var(--text);font-size:14px}
 .btn{background:var(--primary);color:#fff;border:none;padding:14px 20px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;width:100%;margin-top:16px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .btn:active{background:var(--primary-hover)}
@@ -93,23 +92,61 @@ input[type=text], input[type=number], select{width:100%;padding:12px;background:
 .btn-secondary.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 
 /* Canvas Pembaca & Tanda Tangan */
-.canvas-container{display:flex;flex-direction:column;align-items:center;margin-top:15px;overflow:hidden;position:relative}
-#readerCanvasWrap{overflow:hidden;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.1);background:#fff;display:inline-block;transition:filter .2s}
+.canvas-container{display:flex;flex-direction:column;align-items:center;margin-top:15px;overflow:hidden;position:relative;width:100%;}
+#readerCanvasWrap{overflow:hidden;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.1);background:#fff;display:inline-block;transition:filter .2s;max-width:100%;}
 #readerCanvas{max-width:100%;height:auto;display:block;margin:auto}
 
-/* Animasi Pergeseran Halaman Reader */
-@keyframes slideInRight {
-  from { transform: translateX(50px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+.sig-pad{
+  border:2px dashed #94a3b8;
+  background:#ffffff;
+  border-radius:10px;
+  touch-action:none;
+  margin-top:8px;
+  cursor:crosshair;
+  width:100%;
+  max-width:340px;
+  height:140px;
+  display:block;
 }
-@keyframes slideInLeft {
-  from { transform: translateX(-50px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-.anim-next { animation: slideInRight .22s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
-.anim-prev { animation: slideInLeft .22s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
 
-.sig-pad{border:2px dashed #94a3b8;background:#fff;border-radius:10px;touch-action:none;margin-top:8px;cursor:crosshair;width:300px;height:130px}
+/* Container Preview Tanda Tangan Interaktif */
+.sig-preview-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-top: 15px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  background: #ffffff;
+  touch-action: none;
+  max-width: 100%;
+}
+
+.draggable-sig-box {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 120px;
+  height: 60px;
+  border: 2px dashed #e5322d;
+  background: rgba(229, 50, 45, 0.08);
+  cursor: move;
+  border-radius: 6px;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  z-index: 10;
+}
+
+.draggable-sig-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
 
 /* Reader Toolbar Normal Controls */
 .reader-controls{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:center;width:100%}
@@ -124,14 +161,14 @@ input[type=text], input[type=number], select{width:100%;padding:12px;background:
   position: fixed !important; inset: 0 !important; z-index: 99999 !important;
   background: #0f172a !important; padding: 0 !important; margin: 0 !important;
   width: 100vw !important; height: 100vh !important; border-radius: 0 !important;
-  display: flex !important; flex-direction: column !important; justify-content: center !important;
-  align-items: center !important;
+  display: flex !important; flex-direction: column !important; justify-content: flex-start !important;
+  align-items: center !important; overflow-y: auto !important;
 }
 
 .fullscreen-reader .fs-header {
   display: flex !important;
-  position: absolute;
-  top: max(48px, calc(env(safe-area-inset-top) + 20px));
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
   left: 14px;
   right: 14px;
   align-items: center;
@@ -145,24 +182,22 @@ input[type=text], input[type=number], select{width:100%;padding:12px;background:
 }
 
 .fullscreen-reader #readerCanvasWrap {
-  max-height: 96vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
+  margin-top: max(60px, calc(env(safe-area-inset-top) + 40px));
+  margin-bottom: max(20px, env(safe-area-inset-bottom));
+  max-width: 98vw;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
 }
 
 .fs-page-info {
   pointer-events: auto;
-  background: rgba(0, 0, 0, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
   padding: 6px 16px;
   border-radius: 20px;
   font-size: 13px;
   font-weight: 600;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
 }
 
 .icon-btn-fs {
@@ -170,23 +205,21 @@ input[type=text], input[type=number], select{width:100%;padding:12px;background:
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
   font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
 }
 .icon-btn-fs:active {
   background: rgba(229, 50, 45, 0.9);
 }
 
-/* Progress Indicator */
-.progress{display:none;margin-top:16px;text-align:center;font-size:13px;color:var(--primary)}
+.progress{display:none;margin-top:16px;text-align:center;font-size:13px;font-weight:bold;color:var(--primary)}
 </style>
 </head>
 <body>
@@ -281,7 +314,6 @@ input[type=text], input[type=number], select{width:100%;padding:12px;background:
 
     <!-- Container Khusus PDF Reader -->
     <div class="canvas-container" id="readerContainer" style="display:none">
-      <!-- Overlay Khusus Mode Fullscreen -->
       <div class="fs-header" id="fsHeader">
         <button type="button" class="icon-btn-fs" id="fsExitBtn" title="Keluar Fullscreen">✕</button>
         <span id="fsPageInfo" class="fs-page-info">— / —</span>
@@ -292,7 +324,6 @@ input[type=text], input[type=number], select{width:100%;padding:12px;background:
         <canvas id="readerCanvas"></canvas>
       </div>
 
-      <!-- Bilah Navigasi Mode Normal -->
       <div class="reader-controls" id="readerControls">
         <button type="button" class="btn btn-secondary" style="width:auto;margin:0" id="prevPageBtn">‹ Prev</button>
         <span id="pageInfo" style="font-size:13px;color:#475569;min-width:70px;text-align:center">— / —</span>
@@ -317,6 +348,12 @@ let currentReaderPage = 1;
 let currentPdfBuffer = null;
 let currentPdfName = "";
 let isDimmed = false;
+
+// Variabel Khusus Tanda Tangan
+let sigCanvas = null, sigCtx = null, isDrawing = false, hasDrawnSignature = false;
+let sigX = 20, sigY = 20, sigW = 120, sigH = 60;
+let isDraggingSig = false, dragStartX = 0, dragStartY = 0;
+let sigPdfDoc = null;
 
 // IndexedDB Helper
 const dbName = "PDFToolsLocalDB";
@@ -358,6 +395,7 @@ async function openTool(tool) {
   activeTool = tool;
   selectedFiles = [];
   pdfDoc = null;
+  sigPdfDoc = null;
 
   $("dashboard").style.display = "none";
   $("workPanel").style.display = "block";
@@ -416,6 +454,65 @@ $("fileInput").onchange = async (e) => {
   const extra = $("extraControls");
   extra.innerHTML = "";
 
+  if (activeTool === "split") {
+    extra.innerHTML = `
+      <label>Rentang Halaman (Contoh: 1-3, 5):</label>
+      <input type="text" id="splitPagesInput" placeholder="Misal: 1-2">
+    `;
+  } else if (activeTool === "rotate") {
+    extra.innerHTML = `
+      <label>Sudut Putar Halaman:</label>
+      <select id="rotateAngleSelect">
+        <option value="90">90 Derajat (Searah Jarum Jam)</option>
+        <option value="180">180 Derajat (Terbalik)</option>
+        <option value="270">270 Derajat (Berlawanan Jarum Jam)</option>
+      </select>
+    `;
+  } else if (activeTool === "watermark") {
+    extra.innerHTML = `
+      <label>Teks Watermark / Cap Air:</label>
+      <input type="text" id="watermarkTextInput" placeholder="Contoh: RAHASIA / CONFIDENTIAL">
+    `;
+  } else if (activeTool === "sign") {
+    extra.innerHTML = `
+      <label>1. Buat Tanda Tangan Anda di Bawah Ini:</label>
+      <canvas id="sigCanvas" class="sig-pad"></canvas>
+      <button type="button" class="btn btn-secondary" style="width:auto;padding:8px 14px;margin-top:6px" onclick="clearSignature()">🗑️ Bersihkan Tanda Tangan</button>
+      
+      <div style="margin-top:16px;">
+        <label>2. Atur Halaman &amp; Ukuran Tanda Tangan:</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="margin-top:0">Pilih Halaman:</label>
+            <input type="number" id="sigPageInput" value="1" min="1" onchange="renderSigPagePreview()">
+          </div>
+          <div>
+            <label style="margin-top:0">Ukuran Tanda Tangan:</label>
+            <input type="range" id="sigScaleSlider" min="40" max="250" value="100" oninput="updateSigScale(this.value)">
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <label>3. Sentuh &amp; Geser Tanda Tangan di Atas Pratinjau Dokumen:</label>
+        <div class="sig-preview-wrapper" id="sigPreviewWrapper">
+          <canvas id="sigPdfPageCanvas"></canvas>
+          <div class="draggable-sig-box" id="draggableSig">
+            <img id="sigImgOverlay" src="" alt="TTD">
+          </div>
+        </div>
+      </div>
+    `;
+    
+    setTimeout(async () => {
+      initSigCanvas();
+      makeSigDraggable();
+      const buffer = await selectedFiles[0].arrayBuffer();
+      sigPdfDoc = await pdfjsLib.getDocument({ data: buffer }).promise;
+      renderSigPagePreview();
+    }, 100);
+  }
+
   if (activeTool === "reader") {
     $("processBtn").style.display = "none";
     $("readerContainer").style.display = "flex";
@@ -429,10 +526,161 @@ $("fileInput").onchange = async (e) => {
   }
 };
 
+// Inisialisasi Canvas Gambar Tanda Tangan
+function initSigCanvas() {
+  sigCanvas = $("sigCanvas");
+  if (!sigCanvas) return;
+  
+  sigCanvas.width = 340;
+  sigCanvas.height = 140;
+  sigCtx = sigCanvas.getContext("2d");
+  sigCtx.strokeStyle = "#0f172a";
+  sigCtx.lineWidth = 3;
+  sigCtx.lineCap = "round";
+  sigCtx.lineJoin = "round";
+  hasDrawnSignature = false;
+
+  const getPos = (e) => {
+    const rect = sigCanvas.getBoundingClientRect();
+    let clientX = e.clientX, clientY = e.clientY;
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY;
+    }
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  };
+
+  const updateOverlay = () => {
+    if (hasDrawnSignature && $("sigImgOverlay")) {
+      $("sigImgOverlay").src = sigCanvas.toDataURL("image/png");
+    }
+  };
+
+  const startDraw = (e) => {
+    if (e.cancelable) e.preventDefault();
+    isDrawing = true;
+    hasDrawnSignature = true;
+    const p = getPos(e);
+    sigCtx.beginPath();
+    sigCtx.moveTo(p.x, p.y);
+  };
+
+  const moveDraw = (e) => {
+    if (!isDrawing) return;
+    if (e.cancelable) e.preventDefault();
+    const p = getPos(e);
+    sigCtx.lineTo(p.x, p.y);
+    sigCtx.stroke();
+    updateOverlay();
+  };
+
+  const stopDraw = () => { isDrawing = false; updateOverlay(); };
+
+  sigCanvas.addEventListener("mousedown", startDraw);
+  sigCanvas.addEventListener("mousemove", moveDraw);
+  window.addEventListener("mouseup", stopDraw);
+
+  sigCanvas.addEventListener("touchstart", startDraw, { passive: false });
+  sigCanvas.addEventListener("touchmove", moveDraw, { passive: false });
+  sigCanvas.addEventListener("touchend", stopDraw, { passive: false });
+}
+
+function clearSignature() {
+  if (sigCtx && sigCanvas) {
+    sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+    hasDrawnSignature = false;
+    if ($("sigImgOverlay")) $("sigImgOverlay").src = "";
+  }
+}
+
+// Render Pratinjau Halaman Dokumen untuk Tanda Tangan
+async function renderSigPagePreview() {
+  if (!sigPdfDoc) return;
+  let pageNum = parseInt($("sigPageInput") ? $("sigPageInput").value : "1");
+  if (isNaN(pageNum) || pageNum < 1) pageNum = 1;
+  if (pageNum > sigPdfDoc.numPages) { pageNum = sigPdfDoc.numPages; $("sigPageInput").value = pageNum; }
+
+  const page = await sigPdfDoc.getPage(pageNum);
+  const containerWidth = Math.min(window.innerWidth - 64, 600);
+  const unscaledVp = page.getViewport({ scale: 1.0 });
+  const autoScale = containerWidth / unscaledVp.width;
+
+  const vp = page.getViewport({ scale: autoScale });
+  const canvas = $("sigPdfPageCanvas");
+  canvas.width = vp.width;
+  canvas.height = vp.height;
+
+  await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+}
+
+// Logika Drag & Geser Box Tanda Tangan
+function makeSigDraggable() {
+  const box = $("draggableSig");
+  if (!box) return;
+
+  const startDrag = (e) => {
+    if (e.cancelable) e.preventDefault();
+    isDraggingSig = true;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    dragStartX = clientX - sigX;
+    dragStartY = clientY - sigY;
+  };
+
+  const moveDrag = (e) => {
+    if (!isDraggingSig) return;
+    if (e.cancelable) e.preventDefault();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    sigX = clientX - dragStartX;
+    sigY = clientY - dragStartY;
+
+    const canvas = $("sigPdfPageCanvas");
+    if (canvas) {
+      sigX = Math.max(0, Math.min(sigX, canvas.width - sigW));
+      sigY = Math.max(0, Math.min(sigY, canvas.height - sigH));
+    }
+
+    box.style.left = sigX + "px";
+    box.style.top = sigY + "px";
+  };
+
+  const stopDrag = () => { isDraggingSig = false; };
+
+  box.addEventListener("mousedown", startDrag);
+  window.addEventListener("mousemove", moveDrag);
+  window.addEventListener("mouseup", stopDrag);
+
+  box.addEventListener("touchstart", startDrag, { passive: false });
+  window.addEventListener("touchmove", moveDrag, { passive: false });
+  window.addEventListener("touchend", stopDrag, { passive: false });
+}
+
+// Slider Ukuran Tanda Tangan (Besar/Kecil)
+function updateSigScale(val) {
+  const factor = val / 100;
+  sigW = 120 * factor;
+  sigH = 60 * factor;
+
+  const box = $("draggableSig");
+  if (box) {
+    box.style.width = sigW + "px";
+    box.style.height = sigH + "px";
+  }
+}
+
+// Render Reader Normal
 async function renderReaderPage(direction = null) {
   if (!pdfDoc) return;
   const page = await pdfDoc.getPage(currentReaderPage);
-  const vp = page.getViewport({ scale: 1.2 });
+  
+  const containerWidth = Math.min(window.innerWidth - 32, 700);
+  const unscaledVp = page.getViewport({ scale: 1.0 });
+  const autoScale = containerWidth / unscaledVp.width;
+
+  const vp = page.getViewport({ scale: autoScale });
   const canvas = $("readerCanvas");
   const wrap = $("readerCanvasWrap");
   
@@ -503,6 +751,7 @@ function enterFullscreenMode() {
   const container = $("readerContainer");
   if (container.requestFullscreen) container.requestFullscreen().catch(()=>{});
   container.classList.add("fullscreen-reader");
+  renderReaderPage();
 }
 
 function exitFullscreenMode() {
@@ -511,6 +760,7 @@ function exitFullscreenMode() {
     document.exitFullscreen().catch(()=>{});
   }
   container.classList.remove("fullscreen-reader");
+  renderReaderPage();
 }
 
 $("fullBtn").onclick = enterFullscreenMode;
@@ -519,8 +769,184 @@ $("fsExitBtn").onclick = exitFullscreenMode;
 document.addEventListener("fullscreenchange", () => {
   if (!document.fullscreenElement) {
     $("readerContainer").classList.remove("fullscreen-reader");
+    renderReaderPage();
   }
 });
+
+// EKSEKUSI TOMBOL PROSES SEKARANG (DENGAN PENANGANAN LOKASI TTD PRESISI)
+$("processBtn").onclick = async () => {
+  if (!selectedFiles.length) {
+    alert("Silakan pilih file terlebih dahulu!");
+    return;
+  }
+
+  $("progressText").style.display = "block";
+  $("processBtn").style.display = "none";
+
+  try {
+    if (activeTool === "sign") {
+      if (!sigCanvas || !hasDrawnSignature) {
+        throw new Error("Silakan gambar tanda tangan Anda pada kotak terlebih dahulu!");
+      }
+      
+      const sigDataUrl = sigCanvas.toDataURL("image/png");
+      const bytes = await selectedFiles[0].arrayBuffer();
+      const doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+      const sigImage = await doc.embedPng(sigDataUrl);
+
+      const totalPages = doc.getPageCount();
+      let pageNum = parseInt($("sigPageInput") ? $("sigPageInput").value : "1");
+      if (isNaN(pageNum) || pageNum < 1) pageNum = 1;
+      if (pageNum > totalPages) pageNum = totalPages;
+
+      const targetPage = doc.getPages()[pageNum - 1];
+      const { width: pdfPageW, height: pdfPageH } = targetPage.getSize();
+
+      const previewCanvas = $("sigPdfPageCanvas");
+      const previewW = previewCanvas.width;
+      const previewH = previewCanvas.height;
+
+      // Konversi koordinat pratinjau ke koordinat presisi PDF
+      const scaleX = pdfPageW / previewW;
+      const scaleY = pdfPageH / previewH;
+
+      const finalPdfX = sigX * scaleX;
+      // Sistem koordinat PDF dimulai dari bawah-kiri (Y terbalik)
+      const finalPdfY = (previewH - (sigY + sigH)) * scaleY;
+      const finalPdfW = sigW * scaleX;
+      const finalPdfH = sigH * scaleY;
+
+      targetPage.drawImage(sigImage, {
+        x: finalPdfX,
+        y: finalPdfY,
+        width: finalPdfW,
+        height: finalPdfH
+      });
+
+      const pdfBytes = await doc.save();
+      downloadBlob(new Blob([pdfBytes], { type: "application/pdf" }), "hasil_ttd.pdf");
+    }
+    else if (activeTool === "pdf2img") {
+      const buffer = await selectedFiles[0].arrayBuffer();
+      const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+      for (let i = 1; i <= doc.numPages; i++) {
+        const page = await doc.getPage(i);
+        const vp = page.getViewport({ scale: 2.0 });
+        const canvas = document.createElement("canvas");
+        canvas.width = vp.width; canvas.height = vp.height;
+        await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+        canvas.toBlob(blob => downloadBlob(blob, `halaman_${i}.png`), "image/png");
+      }
+    } 
+    else if (activeTool === "img2pdf") {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const imgData = await readFileAsDataURL(selectedFiles[i]);
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 10, 10, 190, 0);
+      }
+      pdf.save("hasil_gabung_gambar.pdf");
+    }
+    else if (activeTool === "merge") {
+      const mergedPdf = await PDFLib.PDFDocument.create();
+      for (const file of selectedFiles) {
+        const bytes = await file.arrayBuffer();
+        const doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+        const copiedPages = await mergedPdf.copyPages(doc, doc.getPageIndices());
+        copiedPages.forEach(p => mergedPdf.addPage(p));
+      }
+      const pdfBytes = await mergedPdf.save();
+      downloadBlob(new Blob([pdfBytes], { type: "application/pdf" }), "hasil_gabungan.pdf");
+    }
+    else if (activeTool === "split") {
+      const inputVal = $("splitPagesInput") ? $("splitPagesInput").value.trim() : "";
+      if (!inputVal) throw new Error("Masukkan nomor halaman!");
+      
+      const bytes = await selectedFiles[0].arrayBuffer();
+      const srcDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+      const newDoc = await PDFLib.PDFDocument.create();
+      
+      const pagesToKeep = parsePageRange(inputVal, srcDoc.getPageCount());
+      const copiedPages = await newDoc.copyPages(srcDoc, pagesToKeep);
+      copiedPages.forEach(p => newDoc.addPage(p));
+      
+      const pdfBytes = await newDoc.save();
+      downloadBlob(new Blob([pdfBytes], { type: "application/pdf" }), "hasil_pisah_halaman.pdf");
+    }
+    else if (activeTool === "rotate") {
+      const angle = parseInt($("rotateAngleSelect").value || "90");
+      const bytes = await selectedFiles[0].arrayBuffer();
+      const doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+      doc.getPages().forEach(page => {
+        const currentAngle = page.getRotation().angle;
+        page.setRotation(PDFLib.degrees((currentAngle + angle) % 360));
+      });
+      const pdfBytes = await doc.save();
+      downloadBlob(new Blob([pdfBytes], { type: "application/pdf" }), "hasil_putar.pdf");
+    }
+    else if (activeTool === "watermark") {
+      const text = $("watermarkTextInput") ? $("watermarkTextInput").value.trim() : "CONFIDENTIAL";
+      const bytes = await selectedFiles[0].arrayBuffer();
+      const doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+      doc.getPages().forEach(page => {
+        const { width, height } = page.getSize();
+        page.drawText(text, {
+          x: width / 4,
+          y: height / 2,
+          size: 40,
+          opacity: 0.3,
+          rotate: PDFLib.degrees(45)
+        });
+      });
+      const pdfBytes = await doc.save();
+      downloadBlob(new Blob([pdfBytes], { type: "application/pdf" }), "hasil_watermark.pdf");
+    }
+    else if (activeTool === "pdf2txt") {
+      const buffer = await selectedFiles[0].arrayBuffer();
+      const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+      let fullText = "";
+      for (let i = 1; i <= doc.numPages; i++) {
+        const page = await doc.getPage(i);
+        const textContent = await page.getTextContent();
+        fullText += textContent.items.map(item => item.str).join(" ") + "\n\n";
+      }
+      downloadBlob(new Blob([fullText], { type: "text/plain;charset=utf-8" }), "hasil_ekstrak.txt");
+    }
+
+    alert("Proses berhasil diselesaikan!");
+  } catch (err) {
+    alert("Gagal memproses: " + err.message);
+  } finally {
+    $("progressText").style.display = "none";
+    $("processBtn").style.display = "block";
+  }
+};
+
+function readFileAsDataURL(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.readAsDataURL(file);
+  });
+}
+
+function parsePageRange(str, maxPages) {
+  const pages = [];
+  const parts = str.split(",");
+  parts.forEach(part => {
+    if (part.includes("-")) {
+      const [start, end] = part.split("-").map(n => parseInt(n.trim()));
+      for (let i = start; i <= Math.min(end, maxPages); i++) {
+        if (i > 0) pages.push(i - 1);
+      }
+    } else {
+      const num = parseInt(part.trim());
+      if (num > 0 && num <= maxPages) pages.push(num - 1);
+    }
+  });
+  return pages;
+}
 
 function downloadBlob(blob, filename) {
   const a = document.createElement("a");
