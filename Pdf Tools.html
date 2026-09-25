@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Kertas PDF Tools — iLovePDF Clone Pro</title>
+
+<!-- Library Penunjang PDF Client-Side -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+:root {
+  --primary: #e5322d;
+  --primary-hover: #c4221d;
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #64748b;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  margin:0;
+  padding:0;
+  min-height:100vh;
+  padding-bottom: max(32px, env(safe-area-inset-bottom));
+}
+
+/* Header Disesuaikan Jauh dari Status Bar HP */
+header{
+  min-height:60px;
+  background:#ffffff;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  /* Padding-top ditingkatkan agar tidak bertumpuk dengan jam/bar HP */
+  padding-top: max(48px, calc(env(safe-area-inset-top) + 32px)) !important;
+  padding-bottom: 16px;
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  gap:12px;
+  position:sticky;
+  top:0;
+  z-index:100;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+}
+.brand{font-size:20px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:6px;cursor:pointer}
+.brand span{color:var(--primary)}
+
+/* Container */
+.container{max-width:1000px;margin:0 auto;padding:20px 16px 40px}
+
+/* Grid Dashboard Putih Bersih */
+.grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:16px;margin-top:20px}
+.tool-card{
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  cursor:pointer;
+  transition:transform .2s, border-color .2s, box-shadow .2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+.tool-card:hover{border-color:var(--primary);box-shadow: 0 4px 12px rgba(229, 50, 45, 0.08);}
+.tool-card:active{transform:scale(.98);border-color:var(--primary)}
+.tool-icon{font-size:32px;margin-bottom:12px}
+.tool-title{font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)}
+.tool-desc{font-size:12px;color:var(--text-muted);line-height:1.4}
+
+/* Work Area Panel */
+.panel{display:none;background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:24px;margin-top:20px;box-shadow:0 10px 30px rgba(0,0,0,0.05)}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px}
+.panel-title{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+
+/* Upload Box */
+.upload-box{border:2px dashed #cbd5e1;border-radius:14px;padding:26px 16px;text-align:center;background:#f1f5f9;cursor:pointer;margin-bottom:20px}
+.upload-box:active{border-color:var(--primary);background:#e2e8f0}
+
+/* Form Elements */
+label{display:block;font-size:13px;color:var(--text-muted);margin:12px 0 6px}
+input[type=text], input[type=number], select{width:100%;padding:12px;background:#ffffff;border:1px solid #cbd5e1;border-radius:10px;color:var(--text);font-size:14px}
+.btn{background:var(--primary);color:#fff;border:none;padding:14px 20px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;width:100%;margin-top:16px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{background:var(--primary-hover)}
+.btn-secondary{background:#e2e8f0;color:#1e293b;margin-top:8px}
+.btn-secondary.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* Canvas Pembaca & Tanda Tangan */
+.canvas-container{display:flex;flex-direction:column;align-items:center;margin-top:15px;overflow:hidden;position:relative}
+#readerCanvasWrap{overflow:hidden;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.1);background:#fff;display:inline-block;transition:filter .2s}
+#readerCanvas{max-width:100%;height:auto;display:block;margin:auto}
+
+/* Animasi Pergeseran Halaman Reader */
+@keyframes slideInRight {
+  from { transform: translateX(50px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slideInLeft {
+  from { transform: translateX(-50px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.anim-next { animation: slideInRight .22s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+.anim-prev { animation: slideInLeft .22s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+
+.sig-pad{border:2px dashed #94a3b8;background:#fff;border-radius:10px;touch-action:none;margin-top:8px;cursor:crosshair;width:300px;height:130px}
+
+/* Reader Toolbar Normal Controls */
+.reader-controls{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:center;width:100%}
+
+/* Mode Redup */
+.dimmed { filter: brightness(0.55) contrast(0.95) !important; }
+
+/* LAYOUT KHUSUS MODE FULLSCREEN */
+.fs-header { display: none; }
+
+.fullscreen-reader {
+  position: fixed !important; inset: 0 !important; z-index: 99999 !important;
+  background: #0f172a !important; padding: 0 !important; margin: 0 !important;
+  width: 100vw !important; height: 100vh !important; border-radius: 0 !important;
+  display: flex !important; flex-direction: column !important; justify-content: center !important;
+  align-items: center !important;
+}
+
+.fullscreen-reader .fs-header {
+  display: flex !important;
+  position: absolute;
+  top: max(48px, calc(env(safe-area-inset-top) + 20px));
+  left: 14px;
+  right: 14px;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 100000;
+  pointer-events: none;
+}
+
+.fullscreen-reader .reader-controls {
+  display: none !important;
+}
+
+.fullscreen-reader #readerCanvasWrap {
+  max-height: 96vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.fs-page-info {
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.icon-btn-fs {
+  pointer-events: auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+.icon-btn-fs:active {
+  background: rgba(229, 50, 45, 0.9);
+}
+
+/* Progress Indicator */
+.progress{display:none;margin-top:16px;text-align:center;font-size:13px;color:var(--primary)}
+</style>
+</head>
+<body>
+
+<header id="mainHeader">
+  <div class="brand" id="goHome"><span>PDF</span>Tools</div>
+</header>
+
+<div class="container">
+  <!-- Dashboard Menu Utama -->
+  <div id="dashboard">
+    <h1 style="font-size:22px;margin:10px 0 4px">Semua Alat PDF</h1>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">Olah file PDF langsung di browser tanpa batas ukuran &amp; aman 100% offline.</p>
+
+    <div class="grid">
+      <div class="tool-card" onclick="openTool('reader')">
+        <div class="tool-icon">📖</div>
+        <div class="tool-title">Pembaca PDF</div>
+        <div class="tool-desc">Simpan otomatis, mode layar penuh, redup malam &amp; animasi usap halaman.</div>
+      </div>
+
+      <div class="tool-card" onclick="openTool('sign')">
+        <div class="tool-icon">✍️</div>
+        <div class="tool-title">Tanda Tangan PDF</div>
+        <div class="tool-desc">Gambar &amp; posisikan tanda tangan tebal &amp; tajam di atas preview PDF.</div>
+      </div>
+
+      <div class="tool-card" onclick="openTool('merge')">
+        <div class="tool-icon">🧩</div>
+        <div class="tool-title">Gabung PDF</div>
+        <div class="tool-desc">Menggabungkan beberapa file PDF menjadi satu file secara urut.</div>
+      </div>
+
+      <div class="tool-card" onclick="openTool('split')">
+        <div class="tool-icon">✂️</div>
+        <div class="tool-title">Pisah / Hapus Halaman</div>
+        <div class="tool-desc">Mengambil atau menghapus rentang halaman tertentu dari PDF.</div>
+      </div>
+
+      <div class="tool-card" onclick="openTool('rotate')">
+        <div class="tool-icon">🔄</div>
+        <div class="tool-title">Putar Halaman</div>
+        <div class="tool-desc">Memutar orientasi halaman PDF (90°, 180°, atau 270°).</div>
+      </div>
+
+      <div class="tool-card" onclick="openTool('img2pdf')">
+        <div class="tool-icon">🖼️</div>
+        <div class="tool-title">Gambar ke PDF</div>
+        <div class="tool-desc">Mengubah koleksi foto/gambar (JPG/PNG) menjadi dokumen PDF.</div>
+      </div>
+
+      <div class="tool-card" onclick="openTool('pdf2img')">
+        <div class="tool-icon">📸</div>
+        <div class="tool-title">PDF ke Gambar</div>
+        <div class="tool-desc">Mengekstrak tiap halaman PDF menjadi file gambar berkualitas tinggi.</div>
+      </div>
+
+      <div class="tool-card" onclick="openTool('pdf2txt')">
+        <div class="tool-icon">📝</div>
+        <div class="tool-title">PDF ke Teks (.TXT)</div>
+        <div class="tool-desc">Ekstrak isi teks dari PDF dengan pembersih format otomatis.</div>
+      </div>
+
+      <div class="tool-card" onclick="openTool('watermark')">
+        <div class="tool-icon">💧</div>
+        <div class="tool-title">Beri Watermark</div>
+        <div class="tool-desc">Menambahkan cap teks rahasia/transparan di atas tiap halaman PDF.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel Kerja Dinamis -->
+  <div class="panel" id="workPanel">
+    <div class="panel-header">
+      <div class="panel-title" id="panelTitle">Nama Alat</div>
+      <button class="btn btn-secondary" style="width:auto;padding:8px 14px;margin:0" id="backBtn">✕ Tutup</button>
+    </div>
+
+    <div class="upload-box" id="uploadBox">
+      <div style="font-size:32px;margin-bottom:8px">📁</div>
+      <div id="uploadLabel" style="font-weight:600">Pilih File PDF</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Klik untuk membuka file dari HP/Laptop</div>
+    </div>
+
+    <input type="file" id="fileInput" hidden>
+
+    <!-- Form Kontrol Tambahan -->
+    <div id="extraControls"></div>
+
+    <button class="btn" id="processBtn">⚡ Proses Sekarang</button>
+    <div class="progress" id="progressText">Memproses file...</div>
+
+    <!-- Container Khusus PDF Reader -->
+    <div class="canvas-container" id="readerContainer" style="display:none">
+      <!-- Overlay Khusus Mode Fullscreen -->
+      <div class="fs-header" id="fsHeader">
+        <button type="button" class="icon-btn-fs" id="fsExitBtn" title="Keluar Fullscreen">✕</button>
+        <span id="fsPageInfo" class="fs-page-info">— / —</span>
+        <button type="button" class="icon-btn-fs" id="fsDimToggle" title="Saklar Redup/Terang">🌙</button>
+      </div>
+
+      <div id="readerCanvasWrap">
+        <canvas id="readerCanvas"></canvas>
+      </div>
+
+      <!-- Bilah Navigasi Mode Normal -->
+      <div class="reader-controls" id="readerControls">
+        <button type="button" class="btn btn-secondary" style="width:auto;margin:0" id="prevPageBtn">‹ Prev</button>
+        <span id="pageInfo" style="font-size:13px;color:#475569;min-width:70px;text-align:center">— / —</span>
+        <button type="button" class="btn btn-secondary" style="width:auto;margin:0" id="nextPageBtn">Next ›</button>
+        <button type="button" class="btn btn-secondary" style="width:auto;margin:0" id="dimBtn">🌙 Redup</button>
+        <button type="button" class="btn btn-secondary" style="width:auto;margin:0" id="fullBtn">⛶ Full</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+
+const $ = id => document.getElementById(id);
+let activeTool = "";
+let selectedFiles = [];
+let pdfDoc = null;
+let currentReaderPage = 1;
+let currentPdfBuffer = null;
+let currentPdfName = "";
+let isDimmed = false;
+
+// IndexedDB Helper
+const dbName = "PDFToolsLocalDB";
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(dbName, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains("pdf_store")) {
+        db.createObjectStore("pdf_store", { keyPath: "id" });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function savePdfLocally(name, arrayBuffer, page) {
+  try {
+    const db = await openDB();
+    const tx = db.transaction("pdf_store", "readwrite");
+    tx.objectStore("pdf_store").put({ id: "active_pdf", name, data: arrayBuffer, page });
+  } catch(e) {}
+}
+
+async function loadSavedPdfLocally() {
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction("pdf_store", "readonly");
+      const req = tx.objectStore("pdf_store").get("active_pdf");
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    });
+  } catch(e) { return null; }
+}
+
+async function openTool(tool) {
+  activeTool = tool;
+  selectedFiles = [];
+  pdfDoc = null;
+
+  $("dashboard").style.display = "none";
+  $("workPanel").style.display = "block";
+  $("fileInput").value = "";
+  $("extraControls").innerHTML = "";
+  $("progressText").style.display = "none";
+  $("readerContainer").style.display = "none";
+  $("processBtn").style.display = "block";
+
+  const titles = {
+    reader: "📖 Pembaca PDF",
+    sign: "✍️ Tanda Tangan PDF",
+    merge: "🧩 Gabung Beberapa File PDF",
+    split: "✂️ Pisah / Ekstrak Halaman",
+    rotate: "🔄 Putar Orientasi Halaman",
+    img2pdf: "🖼️ Ubah Gambar ke PDF",
+    pdf2img: "📸 Ubah PDF ke Gambar PNG",
+    pdf2txt: "📝 Ekstrak Teks dari PDF",
+    watermark: "💧 Tambah Cap Air / Watermark"
+  };
+
+  $("panelTitle").textContent = titles[tool] || "Alat PDF";
+  $("fileInput").multiple = (tool === "merge" || tool === "img2pdf");
+  $("fileInput").accept = tool === "img2pdf" ? "image/*" : ".pdf,application/pdf";
+  $("uploadLabel").textContent = tool === "img2pdf" ? "Pilih Satu atau Beberapa Gambar" : (tool === "merge" ? "Pilih Beberapa File PDF" : "Pilih File PDF");
+
+  if (tool === "reader") {
+    $("processBtn").style.display = "none";
+    const saved = await loadSavedPdfLocally();
+    if (saved && saved.data) {
+      currentPdfBuffer = saved.data;
+      currentPdfName = saved.name;
+      currentReaderPage = saved.page || 1;
+      $("uploadLabel").textContent = `Buku Tersimpan: ${saved.name}`;
+      $("readerContainer").style.display = "flex";
+      pdfDoc = await pdfjsLib.getDocument({ data: saved.data }).promise;
+      renderReaderPage();
+    }
+  }
+}
+
+$("goHome").onclick = $("backBtn").onclick = () => {
+  exitFullscreenMode();
+  $("dashboard").style.display = "block";
+  $("workPanel").style.display = "none";
+};
+
+$("uploadBox").onclick = () => $("fileInput").click();
+
+$("fileInput").onchange = async (e) => {
+  selectedFiles = Array.from(e.target.files);
+  if (!selectedFiles.length) return;
+
+  $("uploadLabel").textContent = `${selectedFiles.length} File Terpilih: ` + selectedFiles.map(f => f.name).join(", ");
+
+  const extra = $("extraControls");
+  extra.innerHTML = "";
+
+  if (activeTool === "reader") {
+    $("processBtn").style.display = "none";
+    $("readerContainer").style.display = "flex";
+    currentPdfBuffer = await selectedFiles[0].arrayBuffer();
+    currentPdfName = selectedFiles[0].name;
+    currentReaderPage = 1;
+    
+    pdfDoc = await pdfjsLib.getDocument({ data: currentPdfBuffer }).promise;
+    savePdfLocally(currentPdfName, currentPdfBuffer, currentReaderPage);
+    renderReaderPage();
+  }
+};
+
+async function renderReaderPage(direction = null) {
+  if (!pdfDoc) return;
+  const page = await pdfDoc.getPage(currentReaderPage);
+  const vp = page.getViewport({ scale: 1.2 });
+  const canvas = $("readerCanvas");
+  const wrap = $("readerCanvasWrap");
+  
+  canvas.width = vp.width;
+  canvas.height = vp.height;
+  
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+  
+  const textInfo = `${currentReaderPage} / ${pdfDoc.numPages}`;
+  $("pageInfo").textContent = textInfo;
+  $("fsPageInfo").textContent = textInfo;
+
+  if (direction) {
+    wrap.classList.remove("anim-next", "anim-prev");
+    void wrap.offsetWidth;
+    wrap.classList.add(direction === "next" ? "anim-next" : "anim-prev");
+  }
+
+  if (currentPdfBuffer && currentPdfName) {
+    savePdfLocally(currentPdfName, currentPdfBuffer, currentReaderPage);
+  }
+}
+
+function goPrevReader() {
+  if (currentReaderPage > 1) {
+    currentReaderPage--;
+    renderReaderPage("prev");
+  }
+}
+function goNextReader() {
+  if (pdfDoc && currentReaderPage < pdfDoc.numPages) {
+    currentReaderPage++;
+    renderReaderPage("next");
+  }
+}
+
+$("prevPageBtn").onclick = goPrevReader;
+$("nextPageBtn").onclick = goNextReader;
+
+let rTouchX = 0, rTouchY = 0;
+const readerWrapEl = $("readerCanvasWrap");
+
+readerWrapEl.addEventListener('touchstart', e => {
+  rTouchX = e.changedTouches[0].screenX;
+  rTouchY = e.changedTouches[0].screenY;
+}, { passive: true });
+
+readerWrapEl.addEventListener('touchend', e => {
+  const diffX = e.changedTouches[0].screenX - rTouchX;
+  const diffY = e.changedTouches[0].screenY - rTouchY;
+  if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+    if (diffX < 0) goNextReader();
+    else goPrevReader();
+  }
+}, { passive: true });
+
+function toggleDimMode() {
+  isDimmed = !isDimmed;
+  $("readerCanvasWrap").classList.toggle("dimmed", isDimmed);
+  $("fsDimToggle").textContent = isDimmed ? "☀️" : "🌙";
+  $("dimBtn").textContent = isDimmed ? "☀️ Terang" : "🌙 Redup";
+}
+
+$("dimBtn").onclick = toggleDimMode;
+$("fsDimToggle").onclick = toggleDimMode;
+
+function enterFullscreenMode() {
+  const container = $("readerContainer");
+  if (container.requestFullscreen) container.requestFullscreen().catch(()=>{});
+  container.classList.add("fullscreen-reader");
+}
+
+function exitFullscreenMode() {
+  const container = $("readerContainer");
+  if (document.fullscreenElement && document.exitFullscreen) {
+    document.exitFullscreen().catch(()=>{});
+  }
+  container.classList.remove("fullscreen-reader");
+}
+
+$("fullBtn").onclick = enterFullscreenMode;
+$("fsExitBtn").onclick = exitFullscreenMode;
+
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement) {
+    $("readerContainer").classList.remove("fullscreen-reader");
+  }
+});
+
+function downloadBlob(blob, filename) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
