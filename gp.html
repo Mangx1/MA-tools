@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Kamera Peta GPS Pro</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+    }
+    header {
+      padding-top: max(48px, calc(var(--sat) + 20px)) !important;
+      padding-bottom: 12px;
+    }
+    body {
+      padding-bottom: max(32px, calc(var(--sab) + 16px));
+    }
+    * { -webkit-tap-highlight-color: transparent; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased selection:bg-indigo-500 selection:text-white flex flex-col justify-between">
+
+  <!-- Header Safe Area Status Bar HP -->
+  <header class="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 shadow-lg">
+    <div class="max-w-xl mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-md shrink-0">
+          📍
+        </div>
+        <div>
+          <h1 class="font-bold text-base sm:text-lg text-emerald-400 leading-tight">Kamera Peta GPS</h1>
+          <p class="text-[10px] text-slate-400">Stamp Lokasi & Waktu Presisi</p>
+        </div>
+      </div>
+      
+      <!-- GPS Status Indicator -->
+      <div id="gpsStatusBadge" class="flex items-center gap-1.5 bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full text-[10px] font-semibold text-amber-400">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+        <span id="gpsStatusText">Mencari GPS...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-xl mx-auto px-3 w-full my-auto space-y-3">
+
+    <!-- Area Viewfinder Kamera & Live Overlay -->
+    <div class="relative bg-black rounded-3xl overflow-hidden border border-slate-800 shadow-2xl aspect-[3/4] flex items-center justify-center">
+      
+      <!-- Live Video Element -->
+      <video id="webcam" autoplay playsinline class="w-full h-full object-cover"></video>
+
+      <!-- Canvas Tersembunyi untuk Proses Perekaman Gambar + Stamp -->
+      <canvas id="photoCanvas" class="hidden"></canvas>
+
+      <!-- Hasil Foto Setelah Ditembak -->
+      <img id="capturedResult" class="hidden w-full h-full object-cover z-10">
+
+      <!-- Live GPS Stamp Overlay Viewfinder -->
+      <div id="liveOverlay" class="absolute bottom-3 left-3 right-3 bg-slate-950/80 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3 text-white space-y-1.5 shadow-2xl z-0">
+        <div class="flex items-center justify-between text-[10px] text-emerald-400 font-mono font-bold border-b border-slate-800 pb-1">
+          <span class="flex items-center gap-1">📍 <span id="overlayLatLong">Lat: --.---- | Long: --.----</span></span>
+          <span id="overlayTime">--:--:--</span>
+        </div>
+        
+        <div class="text-xs font-semibold leading-tight line-clamp-2 text-slate-200" id="overlayAddress">
+          Mengambil data alamat lokasi...
+        </div>
+
+        <div class="flex items-center justify-between text-[9px] text-slate-400 font-mono pt-0.5">
+          <span id="overlayDate">TGL: --/--/----</span>
+          <span id="overlayAcc">Akurasi: ±--m</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Panel Informasi Koordinat & Detail -->
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2 text-xs">
+      <div class="flex justify-between items-center text-slate-400 font-medium">
+        <span>Gaya Stempel Watermark:</span>
+        <select id="stampStyle" class="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-xs outline-none">
+          <option value="dark">Dark Banner (Lengkap)</option>
+          <option value="compact">Kertas Ringkas (Kiri Bawah)</option>
+          <option value="minimal">Minimalis Teks Saja</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Tombol Kontrol Utama -->
+    <div class="flex items-center justify-center gap-4 py-2">
+      <!-- Switch Kamera -->
+      <button onclick="switchCamera()" id="btnSwitchCam" title="Ganti Kamera"
+        class="w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700 text-white flex items-center justify-center text-lg active:scale-95 transition shadow-md">
+        🔄
+      </button>
+
+      <!-- Tombol Shutter Utama -->
+      <button onclick="takePicture()" id="btnShutter"
+        class="w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 border-4 border-slate-900 shadow-xl flex items-center justify-center active:scale-90 transition cursor-pointer">
+        <div class="w-12 h-12 rounded-full border-2 border-slate-900 bg-white/20"></div>
+      </button>
+
+      <!-- Tombol Retake / Reset (Muncul setelah foto diambil) -->
+      <button onclick="retakePhoto()" id="btnRetake" class="hidden w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700 text-amber-400 flex items-center justify-center text-lg active:scale-95 transition shadow-md" title="Foto Ulang">
+        ↺
+      </button>
+
+      <!-- Tombol Download (Muncul setelah foto diambil) -->
+      <button onclick="downloadPhoto()" id="btnDownload" class="hidden w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg active:scale-95 transition shadow-md" title="Simpan Foto">
+        💾
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('photoCanvas');
+    const resultImg = document.getElementById('capturedResult');
+    const ctx = canvas.getContext('2d');
+
+    let currentStream = null;
+    let facingMode = 'environment'; // 'environment' (belakang) atau 'user' (depan)
+    
+    let currentLat = null;
+    let currentLong = null;
+    let currentAcc = null;
+    let currentAddress = "Mencari lokasi GPS...";
+    let currentDateTime = new Date();
+
+    // 1. INISIALISASI KAMERA WEBCAM
+    async function initCamera() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+
+      try {
+        const constraints = {
+          video: {
+            facingMode: facingMode,
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        };
+
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = currentStream;
+      } catch (err) {
+        alert("⚠️ Gagal mengakses kamera. Pastikan izin kamera diizinkan di browser!");
+      }
+    }
+
+    function switchCamera() {
+      facingMode = facingMode === 'environment' ? 'user' : 'environment';
+      initCamera();
+    }
+
+    // 2. LIVE GEOLOCATION TRACKING
+    function initGPS() {
+      if (!navigator.geolocation) {
+        updateGPSBadge(false, "GPS Tidak Didukung");
+        return;
+      }
+
+      navigator.geolocation.watchPosition(
+        (pos) => {
+          currentLat = pos.coords.latitude;
+          currentLong = pos.coords.longitude;
+          currentAcc = Math.round(pos.coords.accuracy);
+
+          updateGPSBadge(true, "GPS Aktif");
+          updateLiveOverlayText();
+          fetchAddress(currentLat, currentLong);
+        },
+        (err) => {
+          updateGPSBadge(false, "Sinyal GPS Lemah");
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+
+    function updateGPSBadge(active, text) {
+      const badge = document.getElementById('gpsStatusBadge');
+      const badgeText = document.getElementById('gpsStatusText');
+      badgeText.textContent = text;
+
+      if (active) {
+        badge.className = "flex items-center gap-1.5 bg-emerald-950/80 border border-emerald-700/80 px-2.5 py-1 rounded-full text-[10px] font-semibold text-emerald-400";
+      } else {
+        badge.className = "flex items-center gap-1.5 bg-rose-950/80 border border-rose-700/80 px-2.5 py-1 rounded-full text-[10px] font-semibold text-rose-400";
+      }
+    }
+
+    // 3. REVERSE GEOCODING (Mencari Alamat via OpenStreetMap)
+    async function fetchAddress(lat, lon) {
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+        const data = await response.json();
+        if (data && data.display_name) {
+          currentAddress = data.display_name;
+          document.getElementById('overlayAddress').textContent = currentAddress;
+        }
+      } catch (err) {
+        currentAddress = `Koordinat: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+      }
+    }
+
+    // Update Teks Live Overlay Setiap Detik
+    function updateLiveOverlayText() {
+      currentDateTime = new Date();
+      const dateStr = currentDateTime.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const timeStr = currentDateTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      document.getElementById('overlayDate').textContent = `TGL: ${dateStr}`;
+      document.getElementById('overlayTime').textContent = timeStr;
+
+      if (currentLat !== null) {
+        document.getElementById('overlayLatLong').textContent = `Lat: ${currentLat.toFixed(5)}° | Long: ${currentLong.toFixed(5)}°`;
+        document.getElementById('overlayAcc').textContent = `Akurasi: ±${currentAcc}m`;
+      }
+    }
+
+    setInterval(updateLiveOverlayText, 1000);
+
+    // 4. PROSES PENGAMBILAN FOTO & WATERMARKING
+    function takePicture() {
+      if (!video.videoWidth) return;
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Draw Foto dari Video Stream
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Render Watermark Stamp di Canvas Foto
+      drawGPSWatermark();
+
+      // Tampilkan Hasil Foto
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      resultImg.src = dataUrl;
+      resultImg.classList.remove('hidden');
+      video.classList.add('hidden');
+      document.getElementById('liveOverlay').classList.add('hidden');
+
+      // Update Tombol Kontrol
+      document.getElementById('btnShutter').classList.add('hidden');
+      document.getElementById('btnSwitchCam').classList.add('hidden');
+      document.getElementById('btnRetake').classList.remove('hidden');
+      document.getElementById('btnDownload').classList.remove('hidden');
+    }
+
+    function drawGPSWatermark() {
+      const style = document.getElementById('stampStyle').value;
+      const w = canvas.width;
+      const h = canvas.height;
+
+      const dateStr = currentDateTime.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const timeStr = currentDateTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      if (style === 'dark') {
+        const boxHeight = h * 0.18;
+        const padding = w * 0.03;
+
+        // Dark Semi-Transparent Box
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        ctx.fillRect(0, h - boxHeight, w, boxHeight);
+
+        // Akses Garis Hijau Kiri
+        ctx.fillStyle = '#10b981';
+        ctx.fillRect(0, h - boxHeight, w * 0.015, boxHeight);
+
+        // Header: Lat/Long & Time
+        ctx.fillStyle = '#34d399';
+        ctx.font = `bold ${Math.max(16, w * 0.025)}px monospace`;
+        const latText = currentLat !== null ? `Lat: ${currentLat.toFixed(5)}°  Long: ${currentLong.toFixed(5)}°` : 'GPS Lokasi Tidak Aktif';
+        ctx.fillText(`📍 ${latText}`, padding, h - boxHeight + (boxHeight * 0.25));
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(18, w * 0.028)}px sans-serif`;
+        
+        // Wrap Alamat Teks agar Tidak Terpotong
+        wrapText(ctx, currentAddress, padding, h - boxHeight + (boxHeight * 0.52), w - (padding * 2), boxHeight * 0.22);
+
+        // Footer: Tanggal & Akurasi
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = `${Math.max(14, w * 0.022)}px monospace`;
+        ctx.fillText(`WAKTU: ${dateStr} ${timeStr} WIB | Akurasi: ±${currentAcc || 0}m`, padding, h - (boxHeight * 0.12));
+      } else if (style === 'compact') {
+        const boxWidth = w * 0.6;
+        const boxHeight = h * 0.15;
+        const margin = w * 0.03;
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.roundRect(margin, h - boxHeight - margin, boxWidth, boxHeight, 16);
+        ctx.fill();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = `bold ${Math.max(14, w * 0.022)}px sans-serif`;
+        ctx.fillText(`📍 ${dateStr} - ${timeStr}`, margin + 15, h - boxHeight - margin + 25);
+
+        ctx.fillStyle = '#334155';
+        ctx.font = `${Math.max(12, w * 0.018)}px sans-serif`;
+        wrapText(ctx, currentAddress, margin + 15, h - boxHeight - margin + 45, boxWidth - 30, 18);
+      } else {
+        // Minimalist Text
+        ctx.shadowColor = 'black';
+        ctx.shadowBlur = 6;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(18, w * 0.03)}px monospace`;
+        ctx.fillText(`📍 ${currentLat?.toFixed(5) || 0}, ${currentLong?.toFixed(5) || 0}`, w * 0.04, h - (h * 0.08));
+        ctx.fillText(`🕒 ${dateStr} ${timeStr}`, w * 0.04, h - (h * 0.04));
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    // Helper Fungsi Wrap Teks di Canvas
+    function wrapText(context, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(' ');
+      let line = '';
+
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = context.measureText(testLine);
+        const testWidth = metrics.width;
+        if (testWidth > maxWidth && n > 0) {
+          context.fillText(line, x, y);
+          line = words[n] + ' ';
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      context.fillText(line, x, y);
+    }
+
+    function retakePhoto() {
+      resultImg.classList.add('hidden');
+      video.classList.remove('hidden');
+      document.getElementById('liveOverlay').classList.remove('hidden');
+
+      document.getElementById('btnShutter').classList.remove('hidden');
+      document.getElementById('btnSwitchCam').classList.remove('hidden');
+      document.getElementById('btnRetake').classList.add('hidden');
+      document.getElementById('btnDownload').classList.add('hidden');
+    }
+
+    function downloadPhoto() {
+      const link = document.createElement('a');
+      link.download = `GPS_MAP_${Date.now()}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      link.click();
+    }
+
+    window.onload = () => {
+      initCamera();
+      initGPS();
+    };
+  </script>
+</body>
+</html>
