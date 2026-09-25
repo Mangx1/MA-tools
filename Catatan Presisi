@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Catatan Perintah Termux &amp; Skrip CLI (Light Mode)</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Highlight.js Syntax Highlighting (Tema Terang / Light) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-light.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
+  <style>
+    body {
+      /* Safe area inset presisi untuk Status Bar atas dan Navigasi Bar bawah Android WebView */
+      padding-top: max(48px, calc(env(safe-area-inset-top) + 36px)) !important;
+      padding-bottom: max(48px, calc(env(safe-area-inset-bottom) + 36px)) !important;
+      padding-left: max(12px, env(safe-area-inset-left)) !important;
+      padding-right: max(12px, env(safe-area-inset-right)) !important;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    textarea, pre, code {
+      tab-size: 4;
+      -moz-tab-size: 4;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Notification Toast Container -->
+  <div id="toastNotification" class="fixed bottom-12 right-5 z-50 hidden px-4 py-3 rounded-xl shadow-xl text-xs font-semibold items-center gap-2 border transition-all duration-300">
+    <span id="toastIcon">ℹ️</span>
+    <span id="toastMessage">Pesan Notifikasi</span>
+  </div>
+
+  <div class="max-w-4xl mx-auto space-y-6">
+    
+    <!-- Header Bersih -->
+    <header class="border-b border-slate-200 pb-4">
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 class="text-xl md:text-2xl font-bold text-emerald-600 tracking-wide flex items-center gap-2">
+            ⚡ CATATAN PRESISI CLI
+          </h1>
+          <p class="text-xs text-slate-500 mt-0.5">Manajemen Perintah &amp; Skrip Termux Presisi</p>
+        </div>
+
+        <!-- Action Backup & Import -->
+        <div class="flex items-center gap-2">
+          <button onclick="exportBackup()" class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm font-medium">
+            <span>📤</span> Backup JSON
+          </button>
+          <label class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs px-3 py-2 rounded-lg cursor-pointer flex items-center gap-1.5 transition-colors shadow-sm font-medium">
+            <span>📥</span> Impor JSON
+            <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="importNotes(event)">
+          </label>
+        </div>
+      </div>
+    </header>
+
+    <!-- Form Input Catatan Baru -->
+    <div class="bg-white p-5 rounded-xl border border-slate-200 space-y-4 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+        <span>➕</span> Tambah Catatan Baru
+      </h2>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="sm:col-span-2">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Judul / Deskripsi Perintah</label>
+          <input type="text" id="noteTitle" placeholder="Contoh: Skrip Build APK Termux / Git Auto Push" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-colors">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Format Unduhan</label>
+          <select id="noteExt" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition-colors">
+            <option value="sh">Shell Script (.sh)</option>
+            <option value="bash">Bash Script (.bash)</option>
+            <option value="py">Python (.py)</option>
+            <option value="txt">Text File (.txt)</option>
+            <option value="json">JSON File (.json)</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Kode / Perintah Termux (Mendukung Tab &amp; Spasi Presisi)</label>
+        <textarea id="noteContent" rows="6" placeholder="Tempel atau ketik kode Termux di sini..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 font-mono text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white leading-relaxed transition-colors"></textarea>
+      </div>
+
+      <button onclick="saveNote()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-all shadow-md flex items-center gap-2">
+        <span>💾</span> Simpan Catatan
+      </button>
+    </div>
+
+    <!-- Filter Search -->
+    <div class="flex items-center gap-2 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+      <span class="text-slate-400 text-sm">🔍</span>
+      <input type="text" id="searchInput" oninput="renderNotes()" placeholder="Cari catatan berdasarkan judul atau isi perintah..." class="bg-transparent text-sm w-full focus:outline-none text-slate-800">
+    </div>
+
+    <!-- Daftar Catatan -->
+    <div class="space-y-4">
+      <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+        <span>📋</span> Daftar Perintah Tersimpan
+      </h2>
+      <div id="notesContainer" class="space-y-4 pb-6">
+        <div class="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-400 text-sm shadow-sm">
+          Belum ada catatan perintah tersimpan.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal Edit Catatan -->
+  <div id="editModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl border border-slate-200 p-5 w-full max-w-xl space-y-4 shadow-2xl">
+      <h3 class="text-base font-bold text-emerald-600 flex items-center gap-2">
+        <span>✏️</span> Edit Catatan Perintah
+      </h3>
+      <input type="hidden" id="editNoteId">
+      
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="sm:col-span-2">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Judul / Deskripsi</label>
+          <input type="text" id="editNoteTitle" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Format Unduhan</label>
+          <select id="editNoteExt" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white">
+            <option value="sh">Shell Script (.sh)</option>
+            <option value="bash">Bash Script (.bash)</option>
+            <option value="py">Python (.py)</option>
+            <option value="txt">Text File (.txt)</option>
+            <option value="json">JSON File (.json)</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Kode / Perintah Termux</label>
+        <textarea id="editNoteContent" rows="6" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 font-mono text-xs text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white leading-relaxed"></textarea>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeEditModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-colors">Batal</button>
+        <button onclick="updateNote()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors">Simpan Perubahan</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let notes = JSON.parse(localStorage.getItem('termux_cmd_notes') || '[]');
+
+    function enableTabKey(element) {
+      element.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          const start = this.selectionStart;
+          const end = this.selectionEnd;
+          this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+          this.selectionStart = this.selectionEnd = start + 1;
+        }
+      });
+    }
+    enableTabKey(document.getElementById('noteContent'));
+    enableTabKey(document.getElementById('editNoteContent'));
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toastNotification');
+      const toastMsg = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.innerText = message;
+      toastIcon.innerText = type === 'success' ? '✅' : '⚠️';
+      
+      toast.className = `fixed bottom-12 right-5 z-50 px-4 py-3 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 border transition-all duration-300 ${
+        type === 'success' ? 'bg-white text-emerald-700 border-emerald-300' : 'bg-white text-rose-700 border-rose-300'
+      }`;
+
+      toast.classList.remove('hidden');
+      setTimeout(() => { toast.classList.add('hidden'); }, 2200);
+    }
+
+    function saveNote() {
+      const titleInput = document.getElementById('noteTitle');
+      const extInput = document.getElementById('noteExt');
+      const contentInput = document.getElementById('noteContent');
+
+      const title = titleInput.value.trim();
+      const ext = extInput.value;
+      const content = contentInput.value;
+
+      if (!title || !content) {
+        showToast('Judul dan isi perintah tidak boleh kosong!', 'error');
+        return;
+      }
+
+      const newNote = {
+        id: Date.now(),
+        title: title,
+        ext: ext,
+        content: content,
+        date: new Date().toLocaleString('id-ID')
+      };
+
+      notes.unshift(newNote);
+      localStorage.setItem('termux_cmd_notes', JSON.stringify(notes));
+
+      titleInput.value = '';
+      contentInput.value = '';
+      renderNotes();
+      showToast('Catatan berhasil disimpan!');
+    }
+
+    function renderNotes() {
+      const container = document.getElementById('notesContainer');
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      
+      const filtered = notes.filter(n => 
+        n.title.toLowerCase().includes(search) || 
+        n.content.toLowerCase().includes(search)
+      );
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-400 text-sm shadow-sm">
+            Belum ada catatan perintah tersimpan.
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      
+      filtered.forEach(note => {
+        const ext = note.ext || 'sh';
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-xl border border-slate-200 p-4 space-y-3 shadow-sm";
+
+        const header = document.createElement('div');
+        header.className = "flex items-start justify-between gap-2 border-b border-slate-200 pb-2 flex-wrap";
+
+        const titleWrapper = document.createElement('div');
+        const titleEl = document.createElement('h3');
+        titleEl.className = "font-bold text-emerald-700 text-sm md:text-base flex items-center gap-2";
+        titleEl.innerHTML = `${note.title} <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">.${ext}</span>`;
+
+        const dateEl = document.createElement('span');
+        dateEl.className = "text-xs text-slate-400 block mt-0.5";
+        dateEl.innerText = note.date;
+
+        titleWrapper.appendChild(titleEl);
+        titleWrapper.appendChild(dateEl);
+
+        const actions = document.createElement('div');
+        actions.className = "flex items-center gap-1.5 flex-wrap mt-1 sm:mt-0";
+
+        const editBtn = document.createElement('button');
+        editBtn.className = "bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs px-2.5 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1 transition-colors font-medium";
+        editBtn.innerHTML = '✏️ Edit';
+        editBtn.onclick = () => openEditModal(note.id);
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = "bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 flex items-center gap-1 transition-colors font-medium";
+        copyBtn.innerHTML = '📋 Salin';
+        copyBtn.onclick = () => copyToClipboard(note.content, copyBtn);
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = "bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1.5 rounded-lg border border-emerald-600 flex items-center gap-1 transition-colors font-medium";
+        downloadBtn.innerHTML = '📥 Unduh';
+        downloadBtn.onclick = () => downloadNote(note.title, note.content, ext);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = "bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs px-2.5 py-1.5 rounded-lg transition-colors";
+        deleteBtn.innerHTML = '🗑️';
+        deleteBtn.onclick = () => deleteNote(note.id);
+
+        actions.appendChild(editBtn);
+        actions.appendChild(copyBtn);
+        actions.appendChild(downloadBtn);
+        actions.appendChild(deleteBtn);
+
+        header.appendChild(titleWrapper);
+        header.appendChild(actions);
+
+        const codeBlock = document.createElement('pre');
+        codeBlock.className = "bg-slate-50 rounded-lg border border-slate-200 p-0 overflow-x-auto text-xs md:text-sm";
+        
+        const codeInner = document.createElement('code');
+        codeInner.className = `language-${ext === 'py' ? 'python' : (ext === 'json' ? 'json' : 'bash')} p-4 block leading-relaxed`;
+        codeInner.textContent = note.content;
+        
+        codeBlock.appendChild(codeInner);
+        hljs.highlightElement(codeInner);
+
+        card.appendChild(header);
+        card.appendChild(codeBlock);
+        container.appendChild(card);
+      });
+    }
+
+    function openEditModal(id) {
+      const note = notes.find(n => n.id === id);
+      if (!note) return;
+
+      document.getElementById('editNoteId').value = note.id;
+      document.getElementById('editNoteTitle').value = note.title;
+      document.getElementById('editNoteExt').value = note.ext || 'sh';
+      document.getElementById('editNoteContent').value = note.content;
+
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.add('hidden');
+    }
+
+    function updateNote() {
+      const id = parseInt(document.getElementById('editNoteId').value);
+      const title = document.getElementById('editNoteTitle').value.trim();
+      const ext = document.getElementById('editNoteExt').value;
+      const content = document.getElementById('editNoteContent').value;
+
+      if (!title || !content) {
+        showToast('Judul dan isi tidak boleh kosong!', 'error');
+        return;
+      }
+
+      notes = notes.map(n => n.id === id ? { ...n, title, ext, content } : n);
+      localStorage.setItem('termux_cmd_notes', JSON.stringify(notes));
+
+      closeEditModal();
+      renderNotes();
+      showToast('Catatan berhasil diperbarui!');
+    }
+
+    function copyToClipboard(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '✅ Tersalin!';
+        setTimeout(() => { btn.innerHTML = originalHTML; }, 1800);
+      }).catch(err => {
+        showToast('Gagal menyalin: ' + err, 'error');
+      });
+    }
+
+    function downloadNote(title, content, ext = 'sh') {
+      const safeTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+      const fileName = `${safeTitle || 'skrip_termux'}.${ext}`;
+
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`File ${fileName} diunduh!`);
+    }
+
+    function exportBackup() {
+      if (notes.length === 0) {
+        showToast('Tidak ada catatan untuk di-backup!', 'error');
+        return;
+      }
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(notes, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `backup_termux_notes_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('Backup JSON berhasil diunduh!');
+    }
+
+    function importNotes(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          if (Array.isArray(importedData)) {
+            notes = [...importedData, ...notes];
+            const uniqueNotes = Array.from(new Map(notes.map(item => [item.id, item])).values());
+            notes = uniqueNotes;
+            localStorage.setItem('termux_cmd_notes', JSON.stringify(notes));
+            renderNotes();
+            showToast('Catatan berhasil diimpor!');
+          } else {
+            showToast('Format JSON tidak valid!', 'error');
+          }
+        } catch (err) {
+          showToast('Gagal membaca file JSON!', 'error');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function deleteNote(id) {
+      if (confirm('Apakah Anda yakin ingin menghapus catatan ini?')) {
+        notes = notes.filter(n => n.id !== id);
+        localStorage.setItem('termux_cmd_notes', JSON.stringify(notes));
+        renderNotes();
+        showToast('Catatan dihapus!');
+      }
+    }
+
+    renderNotes();
+  </script>
+</body>
+</html>
