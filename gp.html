@@ -52,11 +52,26 @@
       <!-- Live Video Element -->
       <video id="webcam" autoplay playsinline class="w-full h-full object-cover"></video>
 
+      <!-- Input Kamera Native HP (Fallback jika file:// memblokir live webcam) -->
+      <input type="file" id="nativeCamInput" accept="image/*" capture="environment" class="hidden" onchange="handleNativeCamera(event)">
+
       <!-- Canvas Tersembunyi untuk Proses Perekaman Gambar + Stamp -->
       <canvas id="photoCanvas" class="hidden"></canvas>
 
       <!-- Hasil Foto Setelah Ditembak -->
       <img id="capturedResult" class="hidden w-full h-full object-cover z-10">
+
+      <!-- Placeholder Saat Kamera Terblokir Local File -->
+      <div id="fileProtocolNotice" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-slate-950 text-center p-6 space-y-3 z-0">
+        <div class="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-3xl mb-1">📸</div>
+        <h3 class="text-sm font-bold text-slate-200">Mode Kamera Lokal HP</h3>
+        <p class="text-[11px] text-slate-400 leading-relaxed max-w-xs">
+          Protokol lokal (<code class="text-amber-400 font-mono">file://</code>) membatasi siaran langsung kamera. Tap tombol di bawah untuk membuka kamera HP.
+        </p>
+        <button onclick="triggerNativeCamera()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg active:scale-95 transition">
+          📷 Buka Kamera HP
+        </button>
+      </div>
 
       <!-- Live GPS Stamp Overlay Viewfinder -->
       <div id="liveOverlay" class="absolute bottom-3 left-3 right-3 bg-slate-950/80 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3 text-white space-y-1.5 shadow-2xl z-0">
@@ -77,7 +92,7 @@
 
     </div>
 
-    <!-- Panel Informasi Koordinat & Detail -->
+    <!-- Panel Informasi Gaya Watermark -->
     <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 space-y-2 text-xs">
       <div class="flex justify-between items-center text-slate-400 font-medium">
         <span>Gaya Stempel Watermark:</span>
@@ -103,12 +118,12 @@
         <div class="w-12 h-12 rounded-full border-2 border-slate-900 bg-white/20"></div>
       </button>
 
-      <!-- Tombol Retake / Reset (Muncul setelah foto diambil) -->
+      <!-- Tombol Retake / Reset -->
       <button onclick="retakePhoto()" id="btnRetake" class="hidden w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700 text-amber-400 flex items-center justify-center text-lg active:scale-95 transition shadow-md" title="Foto Ulang">
         ↺
       </button>
 
-      <!-- Tombol Download (Muncul setelah foto diambil) -->
+      <!-- Tombol Download -->
       <button onclick="downloadPhoto()" id="btnDownload" class="hidden w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg active:scale-95 transition shadow-md" title="Simpan Foto">
         💾
       </button>
@@ -123,15 +138,16 @@
     const ctx = canvas.getContext('2d');
 
     let currentStream = null;
-    let facingMode = 'environment'; // 'environment' (belakang) atau 'user' (depan)
-    
+    let facingMode = 'environment';
+    let isWebcamActive = false;
+
     let currentLat = null;
     let currentLong = null;
     let currentAcc = null;
     let currentAddress = "Mencari lokasi GPS...";
     let currentDateTime = new Date();
 
-    // 1. INISIALISASI KAMERA WEBCAM
+    // 1. INISIALISASI KAMERA WEBCAM (DENGAN AUTO FALLBACK KE NATIVE CAMERA)
     async function initCamera() {
       if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
@@ -139,24 +155,60 @@
 
       try {
         const constraints = {
-          video: {
-            facingMode: facingMode,
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
+          video: { facingMode: facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
           audio: false
         };
 
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = currentStream;
+        isWebcamActive = true;
+        document.getElementById('fileProtocolNotice').classList.add('hidden');
+        video.classList.remove('hidden');
       } catch (err) {
-        alert("⚠️ Gagal mengakses kamera. Pastikan izin kamera diizinkan di browser!");
+        // Fallback jika dibuka via file:// atau di-block browser
+        isWebcamActive = false;
+        video.classList.add('hidden');
+        document.getElementById('fileProtocolNotice').classList.remove('hidden');
       }
     }
 
     function switchCamera() {
+      if (!isWebcamActive) {
+        triggerNativeCamera();
+        return;
+      }
       facingMode = facingMode === 'environment' ? 'user' : 'environment';
       initCamera();
+    }
+
+    function triggerNativeCamera() {
+      document.getElementById('nativeCamInput').click();
+    }
+
+    function handleNativeCamera(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        drawGPSWatermark();
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        resultImg.src = dataUrl;
+        resultImg.classList.remove('hidden');
+        document.getElementById('fileProtocolNotice').classList.add('hidden');
+        document.getElementById('liveOverlay').classList.add('hidden');
+
+        document.getElementById('btnShutter').classList.add('hidden');
+        document.getElementById('btnSwitchCam').classList.add('hidden');
+        document.getElementById('btnRetake').classList.remove('hidden');
+        document.getElementById('btnDownload').classList.remove('hidden');
+      };
+      img.src = URL.createObjectURL(file);
     }
 
     // 2. LIVE GEOLOCATION TRACKING
@@ -209,7 +261,6 @@
       }
     }
 
-    // Update Teks Live Overlay Setiap Detik
     function updateLiveOverlayText() {
       currentDateTime = new Date();
       const dateStr = currentDateTime.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -226,27 +277,27 @@
 
     setInterval(updateLiveOverlayText, 1000);
 
-    // 4. PROSES PENGAMBILAN FOTO & WATERMARKING
+    // 4. SHUTTER TAKING PHOTO
     function takePicture() {
+      if (!isWebcamActive) {
+        triggerNativeCamera();
+        return;
+      }
+
       if (!video.videoWidth) return;
 
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
-      // Draw Foto dari Video Stream
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // Render Watermark Stamp di Canvas Foto
       drawGPSWatermark();
 
-      // Tampilkan Hasil Foto
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
       resultImg.src = dataUrl;
       resultImg.classList.remove('hidden');
       video.classList.add('hidden');
       document.getElementById('liveOverlay').classList.add('hidden');
 
-      // Update Tombol Kontrol
       document.getElementById('btnShutter').classList.add('hidden');
       document.getElementById('btnSwitchCam').classList.add('hidden');
       document.getElementById('btnRetake').classList.remove('hidden');
@@ -265,15 +316,12 @@
         const boxHeight = h * 0.18;
         const padding = w * 0.03;
 
-        // Dark Semi-Transparent Box
         ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
         ctx.fillRect(0, h - boxHeight, w, boxHeight);
 
-        // Akses Garis Hijau Kiri
         ctx.fillStyle = '#10b981';
         ctx.fillRect(0, h - boxHeight, w * 0.015, boxHeight);
 
-        // Header: Lat/Long & Time
         ctx.fillStyle = '#34d399';
         ctx.font = `bold ${Math.max(16, w * 0.025)}px monospace`;
         const latText = currentLat !== null ? `Lat: ${currentLat.toFixed(5)}°  Long: ${currentLong.toFixed(5)}°` : 'GPS Lokasi Tidak Aktif';
@@ -282,10 +330,8 @@
         ctx.fillStyle = '#ffffff';
         ctx.font = `bold ${Math.max(18, w * 0.028)}px sans-serif`;
         
-        // Wrap Alamat Teks agar Tidak Terpotong
         wrapText(ctx, currentAddress, padding, h - boxHeight + (boxHeight * 0.52), w - (padding * 2), boxHeight * 0.22);
 
-        // Footer: Tanggal & Akurasi
         ctx.fillStyle = '#94a3b8';
         ctx.font = `${Math.max(14, w * 0.022)}px monospace`;
         ctx.fillText(`WAKTU: ${dateStr} ${timeStr} WIB | Akurasi: ±${currentAcc || 0}m`, padding, h - (boxHeight * 0.12));
@@ -306,7 +352,6 @@
         ctx.font = `${Math.max(12, w * 0.018)}px sans-serif`;
         wrapText(ctx, currentAddress, margin + 15, h - boxHeight - margin + 45, boxWidth - 30, 18);
       } else {
-        // Minimalist Text
         ctx.shadowColor = 'black';
         ctx.shadowBlur = 6;
         ctx.fillStyle = '#ffffff';
@@ -317,7 +362,6 @@
       }
     }
 
-    // Helper Fungsi Wrap Teks di Canvas
     function wrapText(context, text, x, y, maxWidth, lineHeight) {
       const words = text.split(' ');
       let line = '';
@@ -339,7 +383,11 @@
 
     function retakePhoto() {
       resultImg.classList.add('hidden');
-      video.classList.remove('hidden');
+      if (isWebcamActive) {
+        video.classList.remove('hidden');
+      } else {
+        document.getElementById('fileProtocolNotice').classList.remove('hidden');
+      }
       document.getElementById('liveOverlay').classList.remove('hidden');
 
       document.getElementById('btnShutter').classList.remove('hidden');
