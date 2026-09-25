@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Generator M3U Film &amp; Series PRO</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style>
+        :root {
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+        }
+        body {
+            padding-bottom: max(8rem, calc(var(--sab) + 6rem));
+        }
+        /* Penyesuaian Presisi Safe Zone Atas untuk Header */
+        header {
+            padding-top: max(48px, calc(var(--sat) + 24px)) !important;
+            padding-bottom: 12px;
+        }
+        /* Penyesuaian Presisi Safe Zone Bawah untuk Navigasi Floating */
+        .bottom-nav-safe {
+            padding-bottom: max(12px, calc(var(--sab) + 8px)) !important;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+</head>
+<body>
+<!-- Header Utama Light Mode Safe Area -->
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 mb-4 shadow-sm">
+        <div class="max-w-4xl mx-auto flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold text-lg shadow-md shrink-0">
+                    📺
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-tight truncate">Vod Generator</h1>
+                    <p class="text-[11px] text-slate-500 truncate">Generator Playlist M3U Android</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+                <button id="undoBtn" onclick="undoHistory()" disabled="" title="Undo" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 border border-slate-300 text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 active:scale-95 transition">
+                    ↩
+                </button>
+                <button id="redoBtn" onclick="redoHistory()" disabled="" title="Redo" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 border border-slate-300 text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 active:scale-95 transition">
+                    ↪
+                </button>
+                <span id="counter" class="ml-1 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold">
+                    0 Item
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-3 sm:px-6 space-y-4">
+
+        <!-- Import & Form Tambah Tab -->
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            
+            <!-- Selector Tab Mode -->
+            <div class="flex border-b border-slate-200 bg-slate-50/80 p-1.5 gap-1 text-xs font-bold">
+                <button type="button" id="tabSeriesBtn" onclick="switchFormTab('series')" class="flex-1 py-2.5 px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 bg-white text-indigo-600 shadow-sm border border-slate-200">
+                    🎬 Batch Series (Multi Ep)
+                </button>
+                <button type="button" id="tabSingleBtn" onclick="switchFormTab('single')" class="flex-1 py-2.5 px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
+                    🎥 Film Satuan / Single VOD
+                </button>
+                <button type="button" id="tabImportBtn" onclick="switchFormTab('import')" class="flex-1 py-2.5 px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
+                    📂 Import M3U
+                </button>
+            </div>
+
+            <!-- Tab Content 1: Batch Series -->
+            <div id="formTabSeries" class="p-4 space-y-3">
+                <div class="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3 text-[11px] text-indigo-900 flex items-start gap-2">
+                    <span class="text-base">💡</span>
+                    <div><b>Fitur Series Cepat:</b> Tempel daftar link streaming per baris. Sistem akan otomatis membuat episode <b>S01E01, S01E02, dst.</b></div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div class="sm:col-span-2">
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Judul Series / Drama *</label>
+                        <input type="text" id="seriesNama" placeholder="Contoh: Game of Thrones / Duty After School" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Season</label>
+                            <input type="number" id="seriesSeason" value="1" min="1" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Awal Ep</label>
+                            <input type="number" id="seriesStartEp" value="1" min="1" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Link Poster / Logo Series (Opsional)</label>
+                    <input type="text" id="seriesLogo" placeholder="https://..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Daftar Link Video Stream (1 Link Per Baris) *</label>
+                    <textarea id="seriesStreams" rows="4" placeholder="https://stream.com/ep1.mp4
+https://stream.com/ep2.mp4
+https://drive.google.com/file/d/ID/view" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-600 focus:bg-white transition leading-relaxed"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Daftar Link Subtitle SRT (1 Link Per Baris - Opsional)</label>
+                    <textarea id="seriesSubtitles" rows="2" placeholder="https://sub.com/ep1.srt
+https://sub.com/ep2.srt" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-600 focus:bg-white transition leading-relaxed"></textarea>
+                </div>
+
+                <button onclick="tambahSeriesBatch()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold py-2.5 rounded-xl transition text-xs shadow-md cursor-pointer active:scale-[0.98]">
+                    🚀 Generate &amp; Tambahkan Semua Episode Series
+                </button>
+            </div>
+
+            <!-- Tab Content 2: Film Satuan -->
+            <div id="formTabSingle" class="hidden p-4 space-y-3">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Judul Film *</label>
+                    <input type="text" id="inputJudul" placeholder="Contoh: Avatar The Way of Water" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Kategori / Group</label>
+                        <input type="text" id="inputGroup" placeholder="Film" value="Film" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Link Poster / Logo</label>
+                        <input type="text" id="inputLogo" placeholder="https://..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Link Streaming Video *</label>
+                    <input type="text" id="inputStream" placeholder="https://... atau Google Drive link" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">URL Subtitle SRT (Opsional)</label>
+                    <div class="flex gap-2">
+                        <input type="url" id="inputSubtitle" placeholder="URL file .srt / Drive link" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-600 focus:bg-white transition">
+                        <button type="button" onclick="convertInputGoogleDriveSubtitle()" title="Direct Link GD" class="shrink-0 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-indigo-700 px-3 py-2 rounded-xl text-xs font-bold transition active:scale-95">
+                            🔗 GD
+                        </button>
+                    </div>
+                </div>
+
+                <button onclick="tambahFilm()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold py-2.5 rounded-xl transition text-xs shadow-md cursor-pointer active:scale-[0.98]">
+                    + Tambahkan Film ke Playlist
+                </button>
+            </div>
+
+            <!-- Tab Content 3: Import File -->
+            <div id="formTabImport" class="hidden p-4 space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-700 uppercase">Import M3U Lokal</span>
+                    <span id="fileInfo" class="text-[11px] text-slate-500 truncate max-w-[150px]"></span>
+                </div>
+                <label for="fileM3U" class="flex flex-col items-center justify-center w-full py-6 px-3 border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl cursor-pointer transition bg-slate-50 hover:bg-indigo-50/30 active:scale-[0.99]">
+                    <div class="text-3xl mb-1">📥</div>
+                    <div class="text-xs font-bold text-slate-800">Pilih / Tap File M3U dari HP</div>
+                    <div class="text-[10px] text-slate-500 mt-0.5">Mendukung file .m3u dan .m3u8</div>
+                    <input id="fileM3U" type="file" accept=".m3u,.m3u8,text/plain" class="hidden" onchange="importM3U(event)">
+                </label>
+            </div>
+
+        </div>
+
+        <!-- Toolbar Pencarian & Sorting -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm space-y-2.5 sticky top-[110px] z-20">
+            <div class="flex items-center gap-2">
+                <div class="relative flex-1">
+                    <input id="searchFilm" type="search" placeholder="🔍 Cari series, episode, link..." oninput="renderList()" class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-600 transition">
+                </div>
+                
+                <select id="sortFilm" onchange="sortFilms(this.value)" class="bg-slate-50 border border-slate-300 text-slate-700 rounded-xl px-3 py-2 text-xs outline-none cursor-pointer focus:border-indigo-600 transition font-medium">
+                    <option value="original">Urutan: Asli</option>
+                    <option value="az">Judul: A → Z</option>
+                    <option value="za">Judul: Z → A</option>
+                    <option value="group">Kategori Series</option>
+                    <option value="newest">Terbaru Diatas</option>
+                </select>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 text-[11px]">
+                <div class="flex gap-3 font-semibold">
+                    <button onclick="bukaSemuaKategori()" class="text-slate-600 hover:text-indigo-600 transition">
+                        📂 Buka Semua
+                    </button>
+                    <button onclick="tutupSemuaKategori()" class="text-slate-600 hover:text-indigo-600 transition">
+                        📁 Tutup Semua
+                    </button>
+                </div>
+                <div class="text-slate-400 hidden sm:block">
+                    💡 Gunakan ⬆ ⬇ untuk geser urutan episode
+                </div>
+            </div>
+        </div>
+
+        <!-- Daftar Item Playlist -->
+        <div class="space-y-3">
+            <div id="emptyState" class="hidden text-center py-12 bg-white border border-dashed border-slate-300 rounded-2xl text-slate-500 text-xs p-6 shadow-sm">
+                <div class="text-3xl mb-2">📺</div>
+                Belum ada playlist VOD / Series.<br>Gunakan tab <b>Batch Series</b> di atas untuk membuat playlist episode dengan mudah.
+            </div>
+
+            <div id="filmList" class="space-y-3"></div>
+        </div>
+
+        <!-- Preview Kode & Output M3U -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+            <div class="flex justify-between items-center">
+                <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    📜 Kode Result Playlist M3U
+                </span>
+                <span class="text-[10px] text-slate-400 font-mono">Auto Update</span>
+            </div>
+
+            <textarea id="outputResult" readonly="" placeholder="#EXTM3U playlist akan muncul di sini..." class="w-full h-36 bg-slate-900 border border-slate-800 rounded-xl p-3 font-mono text-[11px] text-emerald-400 focus:outline-none resize-y leading-relaxed"></textarea>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="salinKode()" class="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-bold py-2.5 rounded-xl transition text-xs cursor-pointer border border-slate-300 flex items-center justify-center gap-1.5">
+                    📋 Salin Kode M3U
+                </button>
+                <button onclick="downloadFile()" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-2.5 rounded-xl transition text-xs cursor-pointer flex items-center justify-center gap-1.5 shadow-md">
+                    💾 Download File .m3u
+                </button>
+            </div>
+
+            <div class="text-center pt-1">
+                <button onclick="resetData()" class="text-xs text-rose-500 hover:text-rose-700 underline cursor-pointer font-medium">
+                    ⚠️ Reset &amp; Kosongkan Semua Playlist
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Sticky Bottom Nav Safe Area untuk HP Android & iOS -->
+    <div class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 border-t border-slate-200 px-4 pt-2 backdrop-blur-lg sm:hidden shadow-2xl bottom-nav-safe">
+        <div class="max-w-4xl mx-auto flex items-center justify-around gap-2">
+            <button onclick="switchFormTab('series'); window.scrollTo({top:0, behavior:'smooth'});" class="flex flex-col items-center text-indigo-600 active:scale-95 transition">
+                <span class="text-lg">📺</span>
+                <span class="text-[10px] font-bold">Series</span>
+            </button>
+            <button onclick="switchFormTab('single'); window.scrollTo({top:0, behavior:'smooth'});" class="flex flex-col items-center text-slate-600 active:scale-95 transition">
+                <span class="text-lg">🎥</span>
+                <span class="text-[10px] font-medium">Film</span>
+            </button>
+            <button onclick="salinKode()" class="flex flex-col items-center text-slate-600 active:scale-95 transition">
+                <span class="text-lg">📋</span>
+                <span class="text-[10px] font-medium">Salin</span>
+            </button>
+            <button onclick="downloadFile()" class="flex flex-col items-center text-emerald-600 active:scale-95 transition">
+                <span class="text-lg">💾</span>
+                <span class="text-[10px] font-bold">Download</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Dialog Cari Subtitle SRT -->
+    <div id="srtSearchModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm p-4 flex items-end sm:items-center justify-center transition-opacity">
+        <div class="w-full max-w-md bg-white border border-slate-200 rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 space-y-4">
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <span class="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">Cari Subtitle SRT</span>
+                    <h3 id="srtSearchTitle" class="text-base font-bold text-slate-900 mt-0.5 truncate"></h3>
+                </div>
+                <button type="button" onclick="tutupPencarianSRT()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 text-lg">✕</button>
+            </div>
+
+            <p class="text-xs text-slate-500">Pilih provider di bawah ini untuk mencari subtitle file episode/film ini:</p>
+
+            <div class="grid gap-2">
+                <button type="button" onclick="cariSRTDi('subdl')" class="w-full bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-xl p-3 text-left transition cursor-pointer flex items-center justify-between">
+                    <div>
+                        <div class="text-xs font-bold text-slate-800">🟢 SubDL</div>
+                        <div class="text-[10px] text-slate-500">Database subtitle film &amp; series lengkap</div>
+                    </div>
+                    <span class="text-slate-400 text-xs">↗</span>
+                </button>
+
+                <button type="button" onclick="cariSRTDi('subsource')" class="w-full bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-xl p-3 text-left transition cursor-pointer flex items-center justify-between">
+                    <div>
+                        <div class="text-xs font-bold text-slate-800">🔵 SubSource</div>
+                        <div class="text-[10px] text-slate-500">Pencarian SRT cepat &amp; akurat</div>
+                    </div>
+                    <span class="text-slate-400 text-xs">↗</span>
+                </button>
+
+                <button type="button" onclick="cariSRTDi('opensubtitles')" class="w-full bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-xl p-3 text-left transition cursor-pointer flex items-center justify-between">
+                    <div>
+                        <div class="text-xs font-bold text-slate-800">🟣 OpenSubtitles</div>
+                        <div class="text-[10px] text-slate-500">Komunitas subtitle internasional</div>
+                    </div>
+                    <span class="text-slate-400 text-xs">↗</span>
+                </button>
+
+                <button type="button" onclick="cariSRTDi('all')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl py-3 text-xs cursor-pointer shadow-md transition">
+                    🔎 Cari di Semua Provider Sekaligus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Android Toast Notification -->
+    <div id="toast" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-2xl border border-slate-800 transition-all duration-300 opacity-0 pointer-events-none transform translate-y-4 max-w-[90%] truncate text-center">
+    </div>
+
+<script>
+    const STORAGE_KEY = "generator_m3u_daftar_film_v2";
+    let daftarFilm = loadData();
+
+    const undoStack = [];
+    const redoStack = [];
+    let dragSourceIndex = null;
+
+    function cloneFilms(data) {
+        return JSON.parse(JSON.stringify(data || []));
+    }
+
+    function saveHistoryState() {
+        undoStack.push(cloneFilms(daftarFilm));
+        if (undoStack.length > 50) undoStack.shift();
+        redoStack.length = 0;
+        updateHistoryButtons();
+    }
+
+    function updateHistoryButtons() {
+        const undoBtn = document.getElementById("undoBtn");
+        const redoBtn = document.getElementById("redoBtn");
+        if (undoBtn) undoBtn.disabled = undoStack.length === 0;
+        if (redoBtn) redoBtn.disabled = redoStack.length === 0;
+    }
+
+    function undoHistory() {
+        if (!undoStack.length) return;
+        redoStack.push(cloneFilms(daftarFilm));
+        daftarFilm = undoStack.pop();
+        saveData();
+        renderM3U();
+        updateHistoryButtons();
+        showToast("↩ Undo berhasil.");
+    }
+
+    function redoHistory() {
+        if (!redoStack.length) return;
+        undoStack.push(cloneFilms(daftarFilm));
+        daftarFilm = redoStack.pop();
+        saveData();
+        renderM3U();
+        updateHistoryButtons();
+        showToast("↪ Redo berhasil.");
+    }
+
+    function loadData() {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) return [];
+            const data = JSON.parse(saved);
+            return Array.isArray(data) ? data : [];
+        } catch (err) {
+            return [];
+        }
+    }
+
+    function saveData() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(daftarFilm));
+        } catch (err) {
+            showToast("⚠️ Gagal menyimpan ke browser.");
+        }
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function getGoogleDriveFileId(url) {
+        const value = String(url || "").trim();
+        if (!value) return "";
+
+        let match = value.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i);
+        if (match) return match[1];
+
+        try {
+            const parsed = new URL(value);
+            if (/drive\.google\.com$/i.test(parsed.hostname)) {
+                const id = parsed.searchParams.get("id");
+                if (id) return id;
+            }
+        } catch (err) {}
+
+        match = value.match(/\/d\/([a-zA-Z0-9_-]+)/i);
+        return match ? match[1] : "";
+    }
+
+    function createGoogleDriveDirectLink(url) {
+        const fileId = getGoogleDriveFileId(url);
+        if (!fileId) return "";
+        return `https://drive.google.com/uc?export=download&id=${fileId}`;
+    }
+
+    function switchFormTab(tabName) {
+        const tabSeries = document.getElementById("formTabSeries");
+        const tabSingle = document.getElementById("formTabSingle");
+        const tabImport = document.getElementById("formTabImport");
+
+        const btnSeries = document.getElementById("tabSeriesBtn");
+        const btnSingle = document.getElementById("tabSingleBtn");
+        const btnImport = document.getElementById("tabImportBtn");
+
+        const activeClass = "bg-white text-indigo-600 shadow-sm border border-slate-200";
+        const inactiveClass = "text-slate-600 hover:text-slate-900 border-transparent";
+
+        [tabSeries, tabSingle, tabImport].forEach(el => el.classList.add("hidden"));
+        [btnSeries, btnSingle, btnImport].forEach(btn => btn.className = `flex-1 py-2.5 px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${inactiveClass}`);
+
+        if (tabName === 'series') {
+            tabSeries.classList.remove("hidden");
+            btnSeries.className = `flex-1 py-2.5 px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${activeClass}`;
+        } else if (tabName === 'single') {
+            tabSingle.classList.remove("hidden");
+            btnSingle.className = `flex-1 py-2.5 px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${activeClass}`;
+        } else if (tabName === 'import') {
+            tabImport.classList.remove("hidden");
+            btnImport.className = `flex-1 py-2.5 px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 ${activeClass}`;
+        }
+    }
+
+    function tambahSeriesBatch() {
+        const namaSeries = document.getElementById("seriesNama").value.trim();
+        const seasonNum = parseInt(document.getElementById("seriesSeason").value) || 1;
+        const startEp = parseInt(document.getElementById("seriesStartEp").value) || 1;
+        const logo = document.getElementById("seriesLogo").value.trim();
+        const streamText = document.getElementById("seriesStreams").value.trim();
+        const subtitleText = document.getElementById("seriesSubtitles").value.trim();
+
+        if (!namaSeries || !streamText) {
+            showToast("⚠️ Nama Series dan Link Stream wajib diisi!");
+            return;
+        }
+
+        const streams = streamText.split("\n").map(s => s.trim()).filter(Boolean);
+        const subtitles = subtitleText.split("\n").map(s => s.trim()).filter(Boolean);
+
+        if (!streams.length) {
+            showToast("⚠️ Tidak ada link streaming video valid.");
+            return;
+        }
+
+        const seasonFormatted = String(seasonNum).padStart(2, '0');
+        const groupName = `${namaSeries} (Season ${seasonNum})`;
+
+        saveHistoryState();
+
+        streams.forEach((streamUrl, idx) => {
+            const epNum = startEp + idx;
+            const epFormatted = String(epNum).padStart(2, '0');
+            const judulFormatted = `${namaSeries} S${seasonFormatted}E${epFormatted}`;
+            
+            const subUrl = subtitles[idx] || "";
+
+            const streamDirect = createGoogleDriveDirectLink(streamUrl) || streamUrl;
+            const subDirect = createGoogleDriveDirectLink(subUrl) || subUrl;
+
+            daftarFilm.push({
+                judul: judulFormatted,
+                logo: logo,
+                stream: streamDirect,
+                subtitle: subDirect,
+                group: groupName
+            });
+        });
+
+        saveData();
+        renderM3U();
+        updateHistoryButtons();
+
+        document.getElementById("seriesStreams").value = "";
+        document.getElementById("seriesSubtitles").value = "";
+        showToast(`✅ Berhasil membuat ${streams.length} Episode ${namaSeries}!`);
+    }
+
+    function convertInputGoogleDriveSubtitle() {
+        const input = document.getElementById("inputSubtitle");
+        const direct = createGoogleDriveDirectLink(input.value.trim());
+        if (!direct) {
+            showToast("⚠️ Link Drive tidak dikenali.");
+            return;
+        }
+        input.value = direct;
+        showToast("🔗 Direct Link SRT Google Drive dibuat.");
+    }
+
+    function convertFilmGoogleDriveSubtitle(index) {
+        if (!daftarFilm[index]) return;
+        const direct = createGoogleDriveDirectLink(String(daftarFilm[index].subtitle || "").trim());
+        if (!direct) {
+            showToast("⚠️ Link Drive SRT tidak dikenali.");
+            return;
+        }
+        saveHistoryState();
+        daftarFilm[index].subtitle = direct;
+        saveData();
+        renderM3U();
+        updateHistoryButtons();
+        showToast("🔗 Direct Link SRT dibuat.");
+    }
+
+    function tambahFilm() {
+        const judul = document.getElementById("inputJudul").value.trim();
+        const logo = document.getElementById("inputLogo").value.trim();
+        const stream = document.getElementById("inputStream").value.trim();
+        const subtitle = document.getElementById("inputSubtitle").value.trim();
+        const group = document.getElementById("inputGroup").value.trim() || "Film";
+
+        if (!judul || !stream) {
+            showToast("⚠️ Judul dan Link Streaming wajib diisi!");
+            return;
+        }
+
+        const subtitleDirect = createGoogleDriveDirectLink(subtitle) || subtitle;
+        const streamDirect = createGoogleDriveDirectLink(stream) || stream;
+
+        saveHistoryState();
+        daftarFilm.push({ judul, logo, stream: streamDirect, subtitle: subtitleDirect, group });
+        saveData();
+        renderM3U();
+        updateHistoryButtons();
+
+        document.getElementById("inputJudul").value = "";
+        document.getElementById("inputLogo").value = "";
+        document.getElementById("inputStream").value = "";
+        document.getElementById("inputSubtitle").value = "";
+        showToast("✅ Item ditambahkan ke playlist.");
+    }
+
+    function updateFilm(index, field, value) {
+        if (!daftarFilm[index]) return;
+        let finalValue = value;
+        if (field === "subtitle" || field === "stream") {
+            const driveDirect = createGoogleDriveDirectLink(value);
+            if (driveDirect) finalValue = driveDirect;
+        }
+        if (String(daftarFilm[index][field] ?? "") === String(finalValue ?? "")) return;
+
+        saveHistoryState();
+        daftarFilm[index][field] = finalValue;
+        saveData();
+        renderM3U();
+        updateHistoryButtons();
+    }
+
+    function hapusFilm(index) {
+        if (!daftarFilm[index]) return;
+        saveHistoryState();
+        daftarFilm.splice(index, 1);
+        saveData();
+        renderM3U();
+        updateHistoryButtons();
+        showToast("🗑️ Item dihapus.");
+    }
+
+    function pindahUrutan(index, direction) {
+        const newIndex = index + direction;
+        if (newIndex < 0 || newIndex >= daftarFilm.length) return;
+
+        saveHistoryState();
+        const temp = daftarFilm[index];
+        daftarFilm[index] = daftarFilm[newIndex];
+        daftarFilm[newIndex] = temp;
+
+        saveData();
+        renderM3U();
+        updateHistoryButtons();
+        showToast("↕ Urutan dipindahkan.");
+    }
+
+    function getM3UAttribute(line, name) {
+        const regex = new RegExp(name + '\\s*=\\s*"([^"]*)"', 'i');
+        const match = line.match(regex);
+        return match ? match[1].trim() : "";
+    }
+
+    function parseM3U(text) {
+        const source = String(text || "").replace(/^\uFEFF/, "").replace(/\r/g, "");
+        const matches = [...source.matchAll(/#EXTINF\s*:/gi)];
+        const hasil = [];
+
+        for (let i = 0; i < matches.length; i++) {
+            const extStart = matches[i].index;
+            const nextStart = i + 1 < matches.length ? matches[i + 1].index : source.length;
+            const block = source.slice(extStart, nextStart).trim();
+
+            const commaIndex = block.indexOf(",");
+            if (commaIndex < 0) continue;
+
+            const metadata = block.slice(0, commaIndex);
+            const afterTitle = block.slice(commaIndex + 1);
+
+            let titlePart = afterTitle;
+            const urlInAfterTitle = titlePart.search(/https?:\/\//i);
+            const directiveInAfterTitle = titlePart.search(/\s+#(?:EXTVLCOPT|KODIPROP|EXTGRP|EXTHTTP|EXT-X-)/i);
+
+            const cutPoints = [titlePart.length];
+            if (urlInAfterTitle >= 0) cutPoints.push(urlInAfterTitle);
+            if (directiveInAfterTitle >= 0) cutPoints.push(directiveInAfterTitle);
+
+            const title = titlePart.slice(0, Math.min(...cutPoints)).trim();
+            const urls = afterTitle.match(/https?:\/\/[^\s#]+/gi) || [];
+
+            if (!title || !urls.length) continue;
+
+            const logo = getM3UAttribute(metadata, "tvg-logo");
+            const group = getM3UAttribute(metadata, "group-title") || "Film";
+            const tvgName = getM3UAttribute(metadata, "tvg-name");
+            const subtitle = getM3UAttribute(metadata, "subtitle");
+
+            hasil.push({
+                judul: title || tvgName || "Tanpa Judul",
+                logo: logo,
+                stream: urls[0],
+                subtitle: subtitle,
+                group: group
+            });
+        }
+        return hasil;
+    }
+
+    function importM3U(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const hasil = parseM3U(e.target.result);
+                if (!hasil.length) {
+                    showToast("⚠️ Tidak menemukan item M3U valid.");
+                    return;
+                }
+                saveHistoryState();
+                daftarFilm = hasil;
+                saveData();
+                document.getElementById("fileInfo").textContent = `${file.name} (${hasil.length})`;
+                renderM3U();
+                showToast(`✅ ${hasil.length} item berhasil diimport!`);
+            } catch (err) {
+                showToast("⚠️ Gagal membaca file M3U.");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function renderList() {
+        const list = document.getElementById("filmList");
+        const empty = document.getElementById("emptyState");
+        const search = (document.getElementById("searchFilm")?.value || "").trim().toLowerCase();
+
+        list.innerHTML = "";
+        empty.classList.toggle("hidden", daftarFilm.length !== 0);
+
+        if (!daftarFilm.length) return;
+
+        const groups = {};
+        daftarFilm.forEach((film, index) => {
+            const group = (film.group || "Film").trim() || "Film";
+            if (!groups[group]) groups[group] = [];
+            groups[group].push({ film, index });
+        });
+
+        const groupNames = Object.keys(groups).sort((a, b) =>
+            a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
+        );
+
+        let visibleGroups = 0;
+
+        groupNames.forEach((groupName, groupIndex) => {
+            const items = groups[groupName];
+
+            const filtered = search
+                ? items.filter(({ film }) => {
+                    const haystack = [film.judul, film.group, film.logo, film.stream, film.subtitle].join(" ").toLowerCase();
+                    return haystack.includes(search);
+                })
+                : items;
+
+            if (!filtered.length) return;
+            visibleGroups++;
+
+            const section = document.createElement("section");
+            section.className = "border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm";
+
+            const open = search ? true : groupIndex === 0;
+
+            const header = document.createElement("button");
+            header.type = "button";
+            header.className = "w-full flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 transition cursor-pointer text-left border-b border-slate-200/80";
+            header.innerHTML = `
+                <div class="min-w-0 flex items-center gap-2.5">
+                    <span class="category-arrow text-indigo-600 text-xs transition-transform duration-200 ${open ? "rotate-90" : ""}">▶</span>
+                    <div class="min-w-0">
+                        <div class="font-bold text-xs sm:text-sm text-slate-800 truncate">${escapeHtml(groupName)}</div>
+                    </div>
+                </div>
+                <span class="shrink-0 bg-indigo-50 text-indigo-700 border border-indigo-200/60 rounded-full px-2.5 py-0.5 text-[11px] font-bold">
+                    ${filtered.length} Items
+                </span>
+            `;
+
+            const content = document.createElement("div");
+            content.className = open ? "p-3 space-y-3" : "hidden p-3 space-y-3";
+
+            header.onclick = () => {
+                content.classList.toggle("hidden");
+                const arrow = header.querySelector(".category-arrow");
+                arrow.classList.toggle("rotate-90");
+            };
+
+            filtered.forEach(({ film, index }) => {
+                const card = document.createElement("div");
+                card.className = "bg-slate-50/70 border border-slate-200 rounded-xl p-3 sm:p-4 space-y-3 transition hover:border-slate-300";
+                
+                const posterUrl = film.logo || "https://placehold.co/100x140/e2e8f0/475569?text=SERIES";
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <img src="${escapeHtml(posterUrl)}" onerror="this.src='https://placehold.co/100x140/e2e8f0/475569?text=SERIES'"
+                                class="w-10 h-12 object-cover rounded-lg bg-slate-200 border border-slate-300 shrink-0">
+                            <div class="min-w-0">
+                                <span class="text-[10px] font-bold text-indigo-600 tracking-wider">#${index + 1}</span>
+                                <h4 class="text-xs sm:text-sm font-bold text-slate-800 truncate">${escapeHtml(film.judul || "Tanpa Judul")}</h4>
+                                <div class="text-[10px] text-slate-500 truncate mt-0.5">${escapeHtml(film.group)}</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button type="button" onclick="pindahUrutan(${index}, -1)" title="Naik"
+                                class="w-7 h-7 flex items-center justify-center rounded-lg bg-white text-slate-700 border border-slate-300 hover:bg-slate-100 active:scale-95 text-xs">
+                                ⬆
+                            </button>
+                            <button type="button" onclick="pindahUrutan(${index}, 1)" title="Turun"
+                                class="w-7 h-7 flex items-center justify-center rounded-lg bg-white text-slate-700 border border-slate-300 hover:bg-slate-100 active:scale-95 text-xs">
+                                ⬇
+                            </button>
+                            <button type="button" onclick="bukaPencarianSRT(${index})" title="Cari Subtitle SRT"
+                                class="w-7 h-7 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 active:scale-95 text-xs ml-1">
+                                🔎
+                            </button>
+                            <button onclick="hapusFilm(${index})" title="Hapus"
+                                class="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 active:scale-95 text-xs">
+                                🗑
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Judul Episode / Film</label>
+                            <input value="${escapeHtml(film.judul)}"
+                                onchange="updateFilm(${index}, 'judul', this.value)"
+                                class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-600">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Kategori / Season Group</label>
+                            <input value="${escapeHtml(film.group)}"
+                                onchange="updateFilm(${index}, 'group', this.value)"
+                                class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-600">
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 text-xs">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Link Stream Video</label>
+                            <input value="${escapeHtml(film.stream)}"
+                                onchange="updateFilm(${index}, 'stream', this.value)"
+                                class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 font-mono focus:outline-none focus:border-indigo-600">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-0.5">
+                                <label class="text-[10px] font-semibold text-slate-500">URL Subtitle SRT</label>
+                                ${film.subtitle ? `<span class="text-[9px] text-emerald-600 font-bold">✓ Subtitle Terpasang</span>` : ''}
+                            </div>
+                            <div class="flex gap-1.5">
+                                <input type="url" value="${escapeHtml(film.subtitle || "")}"
+                                    placeholder="https://... file .srt"
+                                    onchange="updateFilm(${index}, 'subtitle', this.value)"
+                                    class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 font-mono focus:outline-none focus:border-indigo-600">
+                                <button type="button" onclick="convertFilmGoogleDriveSubtitle(${index})" title="Konversi GD Direct Link"
+                                    class="shrink-0 bg-slate-100 hover:bg-slate-200 text-indigo-700 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold">
+                                    🔗 GD
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                content.appendChild(card);
+            });
+
+            section.appendChild(header);
+            section.appendChild(content);
+            list.appendChild(section);
+        });
+
+        if (search && !visibleGroups) {
+            list.innerHTML = `
+                <div class="text-center py-8 bg-white border border-dashed border-slate-300 rounded-xl text-slate-500 text-xs">
+                    Tidak ditemukan item dengan kata pencarian "<b class="text-slate-800">${escapeHtml(search)}</b>".
+                </div>`;
+        }
+    }
+
+    function bukaSemuaKategori() {
+        document.querySelectorAll("#filmList section > div").forEach(el => el.classList.remove("hidden"));
+        document.querySelectorAll("#filmList .category-arrow").forEach(el => el.classList.add("rotate-90"));
+    }
+
+    function tutupSemuaKategori() {
+        document.querySelectorAll("#filmList section > div").forEach(el => el.classList.add("hidden"));
+        document.querySelectorAll("#filmList .category-arrow").forEach(el => el.classList.remove("rotate-90"));
+    }
+
+    function sortFilms(mode) {
+        if (!daftarFilm.length) return;
+        if (mode === "original") {
+            showToast("ℹ️ Gunakan Undo jika ingin kembali ke urutan awal.");
+            return;
+        }
+
+        saveHistoryState();
+
+        if (mode === "az") {
+            daftarFilm.sort((a, b) => String(a.judul || "").localeCompare(String(b.judul || ""), undefined, { numeric: true, sensitivity: "base" }));
+        } else if (mode === "za") {
+            daftarFilm.sort((a, b) => String(b.judul || "").localeCompare(String(a.judul || ""), undefined, { numeric: true, sensitivity: "base" }));
+        } else if (mode === "group") {
+            daftarFilm.sort((a, b) => {
+                const groupCompare = String(a.group || "Film").localeCompare(String(b.group || "Film"), undefined, { numeric: true, sensitivity: "base" });
+                if (groupCompare !== 0) return groupCompare;
+                return String(a.judul || "").localeCompare(String(b.judul || ""), undefined, { numeric: true, sensitivity: "base" });
+            });
+        } else if (mode === "newest") {
+            daftarFilm.reverse();
+        }
+
+        saveData();
+        renderM3U();
+        updateHistoryButtons();
+        showToast("🔄 Urutan playlist diperbarui.");
+    }
+
+    function generateM3U() {
+        let hasil = "#EXTM3U";
+        daftarFilm.forEach(f => {
+            const judul = String(f.judul || "").replace(/"/g, '\\"');
+            const logo = String(f.logo || "").replace(/"/g, '\\"');
+            const group = String(f.group || "Film").replace(/"/g, '\\"');
+            const subtitle = String(f.subtitle || "").trim().replace(/"/g, '\\"');
+
+            const subtitleAttr = subtitle ? ` subtitle="${subtitle}"` : "";
+            hasil += `\n\n#EXTINF:-1 tvg-name="${judul}" tvg-logo="${logo}" group-title="${group}"${subtitleAttr},${f.judul || ""}`;
+            hasil += `\n${f.stream || ""}`;
+        });
+        return hasil;
+    }
+
+    function renderM3U() {
+        document.getElementById("outputResult").value = daftarFilm.length ? generateM3U() : "";
+        document.getElementById("counter").innerText = `${daftarFilm.length} Item`;
+        renderList();
+    }
+
+    function salinKode() {
+        const text = document.getElementById("outputResult").value;
+        if (!text) {
+            showToast("⚠️ Belum ada kode M3U untuk disalin.");
+            return;
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text)
+                .then(() => showToast("📋 Berhasil disalin ke clipboard!"))
+                .catch(() => fallbackCopy(text));
+        } else {
+            fallbackCopy(text);
+        }
+    }
+
+    function fallbackCopy(text) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand("copy");
+            showToast("📋 Berhasil disalin ke clipboard!");
+        } catch (err) {
+            showToast("⚠️ Gagal menyalin.");
+        }
+        document.body.removeChild(textarea);
+    }
+
+    function downloadFile() {
+        if (!daftarFilm.length) {
+            showToast("⚠️ Playlist masih kosong.");
+            return;
+        }
+
+        const text = generateM3U() + "\n";
+        const filename = "playlist_series.m3u";
+
+        try {
+            const blob = new Blob([text], { type: "application/vnd.apple.mpegurl;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+
+            a.style.display = "none";
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+                a.remove();
+            }, 3000);
+
+            showToast("💾 File .m3u berhasil terdownload!");
+        } catch (err) {
+            showToast("⚠️ Gagal men-download file.");
+        }
+    }
+
+    function resetData() {
+        if (!daftarFilm.length) {
+            showToast("ℹ️ Playlist sudah kosong.");
+            return;
+        }
+
+        if (confirm("Apakah kamu yakin ingin mengosongkan semua daftar playlist?")) {
+            saveHistoryState();
+            daftarFilm = [];
+            localStorage.removeItem(STORAGE_KEY);
+            document.getElementById("fileM3U").value = "";
+            document.getElementById("fileInfo").textContent = "";
+            renderM3U();
+            updateHistoryButtons();
+            showToast("🗑️ Semua item dikosongkan.");
+        }
+    }
+
+    let srtSearchFilmIndex = null;
+
+    function bukaPencarianSRT(index) {
+        if (!daftarFilm[index]) return;
+        srtSearchFilmIndex = index;
+        const title = String(daftarFilm[index].judul || "").trim();
+        document.getElementById("srtSearchTitle").textContent = title || "Tanpa Judul";
+        document.getElementById("srtSearchModal").classList.remove("hidden");
+    }
+
+    function tutupPencarianSRT() {
+        document.getElementById("srtSearchModal").classList.add("hidden");
+        srtSearchFilmIndex = null;
+    }
+
+    function getSRTSearchTitle() {
+        if (srtSearchFilmIndex === null || !daftarFilm[srtSearchFilmIndex]) return "";
+        return String(daftarFilm[srtSearchFilmIndex].judul || "").replace(/\s+/g, " ").trim();
+    }
+
+    function buildSRTSearchUrl(provider, title) {
+        const q = encodeURIComponent(title);
+        if (provider === "subdl") return `https://subdl.com/search/${q}`;
+        if (provider === "subsource") return `https://subsource.net/search?q=${q}`;
+        if (provider === "opensubtitles") return `https://www.opensubtitles.com/en/search-all/q-${q}`;
+        return "";
+    }
+
+    function cariSRTDi(provider) {
+        const title = getSRTSearchTitle();
+        if (!title) {
+            showToast("⚠️ Judul film/episode kosong.");
+            return;
+        }
+
+        const urls = provider === "all"
+            ? [buildSRTSearchUrl("subdl", title), buildSRTSearchUrl("subsource", title), buildSRTSearchUrl("opensubtitles", title)]
+            : [buildSRTSearchUrl(provider, title)];
+
+        tutupPencarianSRT();
+        urls.filter(Boolean).forEach((url) => window.open(url, "_blank", "noopener,noreferrer"));
+        showToast(provider === "all" ? "🔎 Membuka 3 sumber pencarian..." : "🔎 Membuka pencarian SRT...");
+    }
+
+    document.addEventListener("click", (event) => {
+        const modal = document.getElementById("srtSearchModal");
+        if (event.target === modal) tutupPencarianSRT();
+    });
+
+    function showToast(pesan) {
+        const toast = document.getElementById("toast");
+        toast.innerText = pesan;
+        toast.classList.remove("opacity-0", "translate-y-4");
+        toast.classList.add("opacity-100", "translate-y-0");
+
+        clearTimeout(window.toastTimer);
+        window.toastTimer = setTimeout(() => {
+            toast.classList.remove("opacity-100", "translate-y-0");
+            toast.classList.add("opacity-0", "translate-y-4");
+        }, 2200);
+    }
+
+    window.onload = function() {
+        renderM3U();
+        updateHistoryButtons();
+        if (daftarFilm.length) {
+            document.getElementById("fileInfo").textContent = `${daftarFilm.length} item tersimpan`;
+        }
+    };
+</script>
+</body>
+</html>
