@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Manggala Search</title>
+
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" id="my-manifest">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3334/3334886.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            padding-bottom: max(32px, env(safe-area-inset-bottom));
+        }
+        header {
+            padding-top: max(48px, calc(env(safe-area-inset-top) + 32px)) !important;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #ef4444; border-radius: 4px; }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans selection:bg-red-500 selection:text-white">
+
+    <header class="bg-white border-b border-slate-200 px-6 pb-4 flex justify-between items-center shadow-sm sticky top-0 z-20">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl">🍿</span>
+            <h1 class="font-bold text-xl tracking-tight text-red-600">Manggala Search</h1>
+        </div>
+
+        <button id="btnInstall"
+            class="hidden bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all shadow-md cursor-pointer">
+            📥 Install App
+        </button>
+    </header>
+
+    <main class="flex-1 w-full max-w-3xl mx-auto p-6 flex flex-col mt-2 md:mt-6">
+
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+
+            <h2 class="text-center text-lg font-semibold text-slate-700 mb-6">
+                Pencari Film Terpadu
+            </h2>
+
+            <div class="relative flex flex-col sm:flex-row gap-3 mb-2">
+                <div class="relative flex-1">
+                    <input
+                        type="text"
+                        id="inputJudul"
+                        placeholder="Ketik judul film atau anime di sini..."
+                        oninput="tampilkanSaran()"
+                        onkeypress="handleEnter(event)"
+                        autocomplete="off"
+                        class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-red-500 focus:bg-white focus:ring-1 focus:ring-red-500 transition-all placeholder-slate-400"
+                    >
+
+                    <div id="kotakSaran"
+                        class="absolute w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden z-50 hidden max-h-60 overflow-y-auto">
+                    </div>
+                </div>
+
+                <button
+                    onclick="cariFilm()"
+                    class="bg-red-600 hover:bg-red-500 text-white font-bold px-8 py-3 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer">
+                    Cari
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-500 text-center mt-2 mb-6">
+                Cari satu judul, temukan di berbagai sumber.
+            </p>
+
+            <!-- SRT DI ATAS -->
+            <section class="mb-7">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-lg">📝</span>
+                    <h3 class="font-bold text-slate-800">Pencarian SRT</h3>
+                </div>
+
+                <div id="tempatSRT" class="flex flex-col gap-3">
+                    <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl flex justify-between items-center border-l-4 border-l-blue-500">
+                        <span class="text-slate-600 text-sm">
+                            Masukkan judul lalu tekan <strong class="text-slate-800">Cari</strong>.
+                        </span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FILM -->
+            <section>
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-lg">🎬</span>
+                    <h3 class="font-bold text-slate-800">Pencarian Film</h3>
+                </div>
+
+                <div id="tempatHasil" class="flex flex-col gap-3">
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // PWA
+        const manifestData = {
+            "name": "Manggala Search",
+            "short_name": "Manggala Search",
+            "start_url": window.location.href,
+            "display": "standalone",
+            "background_color": "#ffffff",
+            "theme_color": "#ffffff",
+            "icons": [{
+                "src": "https://cdn-icons-png.flaticon.com/512/3334/3334886.png",
+                "sizes": "512x512",
+                "type": "image/png"
+            }]
+        };
+
+        const blobManifest = new Blob(
+            [JSON.stringify(manifestData)],
+            { type: "application/json" }
+        );
+
+        document.getElementById("my-manifest")
+            .setAttribute("href", URL.createObjectURL(blobManifest));
+
+        let deferredPrompt;
+        const btnInstall = document.getElementById("btnInstall");
+
+        window.addEventListener("beforeinstallprompt", (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            btnInstall.classList.remove("hidden");
+        });
+
+        btnInstall.addEventListener("click", async () => {
+            if (!deferredPrompt) return;
+
+            deferredPrompt.prompt();
+
+            const { outcome } = await deferredPrompt.userChoice;
+
+            if (outcome === "accepted") {
+                btnInstall.classList.add("hidden");
+            }
+
+            deferredPrompt = null;
+        });
+
+        // Database saran
+        const databaseFilm = [
+            "The Matrix", "The Guardian", "The Lord of the Rings", "The Dark Knight",
+            "The Avengers", "The Godfather", "The Shawshank Redemption", "The Terminator",
+            "The Lion King", "The Truman Show", "The Silence of the Lambs", "The Sixth Sense",
+            "Avatar", "Inception", "Interstellar", "Gladiator", "Titanic", "Jurassic Park",
+            "Harry Potter and the Sorcerer's Stone", "Spider-Man: No Way Home", "Batman Begins",
+            "Naruto", "One Piece", "Bleach", "Attack on Titan", "Demon Slayer", "Jujutsu Kaisen",
+            "My Hero Academia", "Death Note", "Fullmetal Alchemist", "Hunter x Hunter",
+            "Deadpool", "Iron Man", "Captain America", "Thor", "Black Panther", "Doctor Strange",
+            "Minions", "Despicable Me", "Toy Story", "Finding Nemo", "Up", "Inside Out",
+            "Fast and Furious", "Mission Impossible", "James Bond", "John Wick", "Transformers"
+        ];
+
+        // PROVIDER FILM
+        const daftarWeb = [
+            { nama: "PusatFilm21", url: "https://v4.pusatfilm21info.net/?s=%s" },
+            { nama: "NontonFilm", url: "https://tv.nontonfilm.red/?s=%s" },
+            { nama: "Server 178.128", url: "http://178.128.91.191/?s=%s" },
+            { nama: "XDMovies", url: "https://top.xdmovies.wtf/?s=%s" },
+            { nama: "UHDMovies", url: "https://uhdmovies.autos/?s=%s" },
+            { nama: "Samehadaku", url: "https://v2.samehadaku.how/?s=%s" },
+            { nama: "Ngefilm", url: "https://new39.ngefilm.site/?s=%s" },
+            { nama: "IDLIX", url: "https://z2.idlixku.com/?s=%s" },
+            { nama: "ComeLook", url: "https://comelook.org/?s=%s" },
+            { nama: "KlikXXI", url: "https://klikxxi.shop/?s=%s" }
+        ];
+
+        // PROVIDER SRT
+        const daftarSRT = [
+            { nama: "SubDL", url: "https://subdl.com/search/%s" },
+            { nama: "SubSource", url: "https://subsource.net/search?q=%s" }
+        ];
+
+        function tampilkanSaran() {
+            const input = document.getElementById("inputJudul").value.toLowerCase();
+            const kotakSaran = document.getElementById("kotakSaran");
+
+            kotakSaran.innerHTML = "";
+
+            if (input.trim() === "") {
+                kotakSaran.classList.add("hidden");
+                return;
+            }
+
+            const hasilFilter = databaseFilm.filter(
+                film => film.toLowerCase().includes(input)
+            );
+
+            if (hasilFilter.length > 0) {
+                kotakSaran.classList.remove("hidden");
+
+                hasilFilter.forEach(film => {
+                    const item = document.createElement("div");
+
+                    item.className =
+                        "px-4 py-3 hover:bg-slate-100 text-slate-700 hover:text-slate-900 cursor-pointer transition-colors border-b border-slate-100 last:border-0";
+
+                    item.innerText = film;
+
+                    item.onclick = function() {
+                        document.getElementById("inputJudul").value = film;
+                        kotakSaran.classList.add("hidden");
+                        cariFilm();
+                    };
+
+                    kotakSaran.appendChild(item);
+                });
+            } else {
+                kotakSaran.classList.add("hidden");
+            }
+        }
+
+        document.addEventListener("click", function(event) {
+            const kotakSaran = document.getElementById("kotakSaran");
+            const input = document.getElementById("inputJudul");
+
+            if (event.target !== input && !kotakSaran.contains(event.target)) {
+                kotakSaran.classList.add("hidden");
+            }
+        });
+
+        function cariFilm() {
+            const judul = document.getElementById("inputJudul").value.trim();
+
+            const tempatHasil = document.getElementById("tempatHasil");
+            const tempatSRT = document.getElementById("tempatSRT");
+            const kotakSaran = document.getElementById("kotakSaran");
+
+            kotakSaran.classList.add("hidden");
+
+            tempatHasil.innerHTML = "";
+            tempatSRT.innerHTML = "";
+
+            if (judul === "") {
+                const pesan = `
+                    <div class="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl text-center text-sm">
+                        Silakan masukkan judul film terlebih dahulu.
+                    </div>
+                `;
+
+                tempatSRT.innerHTML = pesan;
+                tempatHasil.innerHTML = pesan;
+                return;
+            }
+
+            const judulFormat = encodeURIComponent(judul);
+
+            // SRT DITAMPILKAN TERLEBIH DAHULU
+            daftarSRT.forEach(srt => {
+                const linkPencarian = srt.url.replace("%s", judulFormat);
+
+                const itemDiv = document.createElement("div");
+
+                itemDiv.className =
+                    "bg-slate-50 hover:bg-slate-100 border border-slate-200 p-4 rounded-xl flex justify-between items-center border-l-4 border-l-blue-500 transition-all group";
+
+                itemDiv.innerHTML = `
+                    <span class="text-slate-700 font-medium group-hover:text-slate-900 transition-colors">
+                        Cari SRT di <strong class="text-slate-900">${srt.nama}</strong>
+                    </span>
+
+                    <a
+                        href="${linkPencarian}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-all border border-blue-200 hover:border-blue-600 whitespace-nowrap">
+                        Cari SRT ↗
+                    </a>
+                `;
+
+                tempatSRT.appendChild(itemDiv);
+            });
+
+            // FILM
+            daftarWeb.forEach(web => {
+                const linkPencarian = web.url.replace("%s", judulFormat);
+
+                const itemDiv = document.createElement("div");
+
+                itemDiv.className =
+                    "bg-slate-50 hover:bg-slate-100 border border-slate-200 p-4 rounded-xl flex justify-between items-center border-l-4 border-l-red-500 transition-all group";
+
+                itemDiv.innerHTML = `
+                    <span class="text-slate-700 font-medium group-hover:text-slate-900 transition-colors">
+                        Cari di <strong class="text-slate-900">${web.nama}</strong>
+                    </span>
+
+                    <a
+                        href="${linkPencarian}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="bg-red-50 hover:bg-red-600 text-red-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-all border border-red-200 hover:border-red-600 whitespace-nowrap">
+                        Buka Web ↗
+                    </a>
+                `;
+
+                tempatHasil.appendChild(itemDiv);
+            });
+        }
+
+        function handleEnter(event) {
+            if (event.key === "Enter") {
+                cariFilm();
+                document.getElementById("kotakSaran").classList.add("hidden");
+            }
+        }
+    </script>
+</body>
+</html>
