@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Visual HTML Editor Mobile Compact</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* TOP BAR MINIMALIS (Sangat Ringkas) */
+    .mobile-header {
+      background: #1e293b;
+      padding: 35px 10px 8px 10px; /* Menyesuaikan Safe Area Notch HP */
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #334155;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .mobile-header .brand-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-icon {
+      background: #334155;
+      color: #f8fafc;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-icon:active { opacity: 0.8; }
+    .btn-icon.primary { background: #2563eb; color: white; }
+    .btn-icon.success { background: #10b981; color: white; }
+    .btn-icon.danger { background: #ef4444; color: white; }
+    .btn-icon.amber { background: #d97706; color: white; }
+
+    /* AREA WORKSPACE / CANVAS (Luas & Dominan) */
+    #editor-workspace {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 8px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      background: #475569;
+    }
+
+    #canvas-frame {
+      background: #ffffff;
+      color: #0f172a;
+      width: 100%;
+      max-width: 380px;
+      min-height: 80vh;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      position: relative;
+      transition: max-width 0.3s ease;
+    }
+
+    /* Penanda Elemen Terpilih */
+    .editor-selected {
+      outline: 2px dashed #2563eb !important;
+      outline-offset: 2px;
+    }
+
+    /* Force Show Elements */
+    .force-show-all [style*="display: none"],
+    .force-show-all [style*="display:none"],
+    .force-show-all .hidden,
+    .force-show-all [hidden] {
+      display: block !important;
+      opacity: 0.85 !important;
+      outline: 1px dashed #d97706 !important;
+    }
+
+    /* BOTTOM DOCK & PANEL EDIT (Ramah Jempol) */
+    .bottom-dock {
+      background: #1e293b;
+      border-top: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      flex-shrink: 0;
+      box-shadow: 0 -4px 15px rgba(0,0,0,0.3);
+    }
+
+    /* Breadcrumbs Bar Ringkas */
+    #breadcrumb-bar {
+      background: #0f172a;
+      padding: 4px 10px;
+      font-size: 10px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      white-space: nowrap;
+      border-bottom: 1px solid #334155;
+    }
+    #breadcrumb-bar span.crumb {
+      background: #334155;
+      color: #38bdf8;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    /* Action Panel yang Ringkas */
+    #action-toolbar {
+      display: none;
+      flex-direction: column;
+      background: #1e293b;
+      padding: 8px;
+    }
+
+    /* Tab Navigasi Alat */
+    .tool-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 4px;
+      overflow-x: auto;
+    }
+    .tool-tab-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tool-tab-btn.active {
+      background: #2563eb;
+      color: white;
+    }
+
+    /* Grid Tombol Aksi */
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+
+    .action-grid button, .action-grid label {
+      height: 34px;
+      padding: 0 4px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border: none;
+      cursor: pointer;
+      background: #334155;
+      color: white;
+    }
+    .action-grid input[type="color"] {
+      width: 14px; height: 14px; border: none; cursor: pointer; background: transparent; margin-left: 4px;
+    }
+
+    /* Navigation Dock Utama (Selalu Ada di Bawah) */
+    .main-nav-dock {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 6px 4px 12px 4px;
+      background: #0f172a;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 9px;
+      cursor: pointer;
+    }
+    .nav-item.active, .nav-item:hover { color: #38bdf8; }
+    .nav-item span { font-size: 16px; }
+
+    /* MODAL POPUP & FORM STYLES */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100%; height: 100%;
+      background: rgba(15, 23, 42, 0.85);
+      z-index: 999999;
+      overflow-y: auto;
+      padding: 20px 12px;
+    }
+    .modal-content {
+      background: #ffffff;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 16px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+      color: #0f172a;
+    }
+    .modal-content h3 { margin-top: 0; margin-bottom: 8px; font-size: 14px; color: #0f172a; }
+    .modal-content textarea {
+      width: 100% !important; height: 180px !important;
+      font-family: monospace; padding: 8px; border: 1px solid #cbd5e1;
+      border-radius: 6px; font-size: 11px; margin: 8px 0; display: block;
+    }
+    .component-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0; }
+    .component-btn {
+      background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px;
+      border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; color: #1e293b; font-size: 11px;
+    }
+    .tree-item {
+      padding: 6px 8px; margin: 3px 0; border-radius: 4px; cursor: pointer; font-size: 11px;
+      font-family: monospace; background: #f8fafc; border: 1px solid #e2e8f0;
+      display: flex; justify-content: space-between; align-items: center; color: #1e293b;
+    }
+    .tree-item.active { background: #2563eb; color: white; }
+    .css-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0; }
+    .css-grid label { font-size: 10px; font-weight: bold; color: #334155; display: block; margin-bottom: 2px; }
+    .css-grid input, .css-grid select { width: 100%; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; }
+  </style>
+  <div id="imported-head-styles"></div>
+  <div id="imported-scripts-container"></div>
+</head>
+<body>
+
+  <!-- Top Header Minimalis -->
+  <div class="mobile-header">
+    <div class="brand-title">
+      <span>⚡ Editor Pro</span>
+    </div>
+    <div class="top-actions">
+      <button class="btn-icon" onclick="undo()" title="Batal">↩️</button>
+      <button class="btn-icon" onclick="redo()" title="Ulangi">↪️</button>
+      <button id="btnTogglePreview" class="btn-icon success" onclick="togglePreviewMode()">👁️ Preview</button>
+      <button class="btn-icon primary" onclick="openMenuModal()">☰ Menu</button>
+    </div>
+  </div>
+
+  <!-- Area Workspace Canvas (Maksimal & Sisa Layar Utama) -->
+  <div id="editor-workspace">
+    <div id="canvas-frame">
+      <div style="text-align: center; padding: 30px; color: #64748b;">
+        <p style="font-size: 13px;">Klik elemen untuk mulai edit, atau tekan <b>"➕ Komponen"</b> di bagian bawah.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Dock & Panel Aksi -->
+  <div class="bottom-dock">
+    <!-- Silsilah Layer Ringkas -->
+    <div id="breadcrumb-bar">
+      <span style="font-size: 9px; color: #64748b;">Layer:</span>
+      <div id="crumb-list" style="display: flex; gap: 4px;"></div>
+    </div>
+
+    <!-- Toolbar Aksi Elemen Terpilih -->
+    <div id="action-toolbar">
+      <div class="tool-tabs">
+        <button class="tool-tab-btn active" onclick="switchTab('tab-gaya')">🎨 Gaya Teks</button>
+        <button class="tool-tab-btn" onclick="switchTab('tab-posisi')">📐 Posisi & Ukuran</button>
+        <button class="tool-tab-btn" onclick="switchTab('tab-aksi')">⚡ Aksi & Warna</button>
+        <button class="tool-tab-btn" onclick="switchTab('tab-kode')">⚙️ Kode/Lanjutan</button>
+      </div>
+
+      <!-- Tab 1: Gaya Teks -->
+      <div id="tab-gaya" class="action-grid">
+        <button title="Rata Kiri" onclick="setTextAlign('left')">⬅️ Kiri</button>
+        <button title="Rata Tengah" onclick="setTextAlign('center')">↔️ Tengah</button>
+        <button title="Rata Kanan" onclick="setTextAlign('right')">➡️ Kanan</button>
+        <button onclick="toggleBold()"><b>B</b> Tebal</button>
+        <button onclick="toggleItalic()"><i>I</i> Miring</button>
+        <button onclick="toggleUnderline()"><u>U</u> Garis</button>
+        <button onclick="toggleEditText()" style="background:#2563eb;">✏️ Edit Teks</button>
+        <button onclick="selectParent()" style="background:#d97706;">📦 Pilih Induk</button>
+      </div>
+
+      <!-- Tab 2: Posisi & Ukuran -->
+      <div id="tab-posisi" class="action-grid" style="display:none;">
+        <button style="background:#2563eb;" onclick="scaleElement(1.08)">🔍+ Perbesar</button>
+        <button style="background:#2563eb;" onclick="scaleElement(0.92)">🔍- Perkecil</button>
+        <button onclick="changeBorderRadius(4)">⭕ Radius +</button>
+        <button onclick="changeBorderRadius(-4)">⭕ Radius -</button>
+        <button onclick="nudgeVertical(-4)">⬆️ Naik</button>
+        <button onclick="nudgeVertical(4)">⬇️ Turun</button>
+        <button onclick="swapUp()">🔀 Tukar Ke Atas</button>
+        <button onclick="swapDown()">🔀 Tukar Ke Bawah</button>
+      </div>
+
+      <!-- Tab 3: Aksi & Warna -->
+      <div id="tab-aksi" class="action-grid" style="display:none;">
+        <label>🎨 Teks <input type="color" id="textColorPicker" onchange="changeTextColor(this.value)"></label>
+        <label>🖌️ Bg <input type="color" id="bgColorPicker" onchange="changeBgColor(this.value)"></label>
+        <button style="background:#10b981;" onclick="openActionModal()">⚡ Aksi Tombol</button>
+        <button id="btnChangeImg" style="display:none; background:#8b5cf6;" onclick="changeImageSrc()">🖼️ Ganti Gambar</button>
+        <button style="background:#d97706;" onclick="resetElementStyle()">🔄 Reset Style</button>
+        <button style="background:#2563eb;" onclick="duplicateElement()">📋 Duplikat</button>
+        <button style="background:#ef4444;" onclick="deleteElement()">🗑️ Hapus</button>
+      </div>
+
+      <!-- Tab 4: Kode / Lanjutan -->
+      <div id="tab-kode" class="action-grid" style="display:none;">
+        <button style="background:#8b5cf6;" onclick="openCssModal()">🎛️ CSS Panel</button>
+        <button style="background:#8b5cf6;" onclick="openElemCodeModal()">🔍 Edit Kode</button>
+      </div>
+    </div>
+
+    <!-- Navigation Dock Utama -->
+    <div class="main-nav-dock">
+      <button class="nav-item" onclick="openAddModal()">
+        <span>➕</span>Komponen
+      </button>
+      <button class="nav-item" onclick="openTreeModal()">
+        <span>🌳</span>Tree View
+      </button>
+      <button class="nav-item" onclick="setDeviceView('mobile')">
+        <span>📱</span>380px
+      </button>
+      <button class="nav-item" onclick="setDeviceView('desktop')">
+        <span>💻</span>100%
+      </button>
+      <button class="nav-item" onclick="toggleShowHidden()">
+        <span>👁️‍🗨️</span>Sembunyi
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Menu Utilitas Utama -->
+  <div id="menuModal" class="modal">
+    <div class="modal-content">
+      <h3>📁 Menu & Berkas Proyek</h3>
+      <div style="display: flex; flex-direction: column; gap: 8px; margin: 15px 0;">
+        <button class="component-btn" style="background:#2563eb; color:white;" onclick="closeMenuModal(); openImportModal();">📥 Import HTML Kode</button>
+        <button class="component-btn" style="background:#10b981; color:white;" onclick="closeMenuModal(); openExportModal();">📤 Export Kode HTML</button>
+        <button class="component-btn" style="background:#14b8a6; color:white;" onclick="closeMenuModal(); downloadHTML();">💾 Download .html File</button>
+        <button class="component-btn" style="background:#ef4444; color:white;" onclick="closeMenuModal(); clearCanvas();">🗑️ Kosongkan Canvas</button>
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button onclick="closeMenuModal()" style="background:#64748b; color:white; border:none; padding:8px 15px; border-radius:5px;">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tree View / Layer Explorer -->
+  <div id="treeModal" class="modal">
+    <div class="modal-content">
+      <h3>🌳 Tree View / Navigasi Layer</h3>
+      <div id="treeContainer" style="max-height:240px; overflow-y:auto; border:1px solid #cbd5e1; padding:8px; border-radius:6px; margin: 10px 0;"></div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button onclick="closeTreeModal()" style="background:#64748b; color:white; border:none; padding:8px 15px; border-radius:5px;">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Edit CSS Lanjutan -->
+  <div id="cssModal" class="modal">
+    <div class="modal-content">
+      <h3>🎛️ Panel CSS & Styling</h3>
+      <div class="css-grid">
+        <div>
+          <label>Padding (px):</label>
+          <input type="number" id="cssPadding" placeholder="10">
+        </div>
+        <div>
+          <label>Margin (px):</label>
+          <input type="number" id="cssMargin" placeholder="10">
+        </div>
+        <div>
+          <label>Display Mode:</label>
+          <select id="cssDisplay">
+            <option value="">Default</option>
+            <option value="block">block</option>
+            <option value="inline-block">inline-block</option>
+            <option value="flex">flex</option>
+            <option value="grid">grid</option>
+            <option value="none">none</option>
+          </select>
+        </div>
+        <div>
+          <label>Positioning:</label>
+          <select id="cssPosition">
+            <option value="">Default</option>
+            <option value="relative">relative</option>
+            <option value="absolute">absolute</option>
+            <option value="fixed">fixed</option>
+            <option value="static">static</option>
+          </select>
+        </div>
+        <div>
+          <label>Box Shadow:</label>
+          <select id="cssBoxShadow">
+            <option value="">Tanpa Bayangan</option>
+            <option value="0 2px 5px rgba(0,0,0,0.1)">Halus</option>
+            <option value="0 4px 12px rgba(0,0,0,0.15)">Sedang</option>
+            <option value="0 10px 25px rgba(0,0,0,0.25)">Tebal</option>
+          </select>
+        </div>
+        <div>
+          <label>Opacity (0 - 1):</label>
+          <input type="number" id="cssOpacity" step="0.1" min="0" max="1" placeholder="1.0">
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top:10px;">
+        <button onclick="closeCssModal()" style="background:#64748b; color:white; border:none; padding:8px 12px; border-radius:5px;">Batal</button>
+        <button onclick="applyCssChanges()" style="background:#10b981; color:white; border:none; padding:8px 12px; border-radius:5px; font-weight:bold;">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Direct Element Code Editor -->
+  <div id="elemCodeModal" class="modal">
+    <div class="modal-content">
+      <h3>🔍 Edit Kode Elemen</h3>
+      <textarea id="elemCodeInput"></textarea>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button onclick="closeElemCodeModal()" style="background:#64748b; color:white; border:none; padding:8px 12px; border-radius:5px;">Batal</button>
+        <button onclick="applyElemCodeChanges()" style="background:#8b5cf6; color:white; border:none; padding:8px 12px; border-radius:5px; font-weight:bold;">Update</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Custom HTML Code -->
+  <div id="customHtmlModal" class="modal">
+    <div class="modal-content">
+      <h3>Sisipkan Kode HTML Custom</h3>
+      <textarea id="customHtmlInput" placeholder='Contoh: <button style="background:red; color:white;">Tombol</button>'></textarea>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button onclick="closeCustomHtmlModal()" style="background:#64748b; color:white; border:none; padding:8px 12px; border-radius:5px;">Batal</button>
+        <button onclick="insertCustomHtml()" style="background:#8b5cf6; color:white; border:none; padding:8px 12px; border-radius:5px; font-weight:bold;">Sisipkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Set Aksi Tombol -->
+  <div id="actionModal" class="modal">
+    <div class="modal-content">
+      <h3>Atur Aksi Tombol</h3>
+      <label style="font-weight:bold; font-size:12px; display:block; margin-top:8px;">1. Buka Link / URL:</label>
+      <input type="text" id="actionUrlInput" placeholder="https://google.com" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
+
+      <label style="font-weight:bold; font-size:12px; display:block; margin-top:10px;">2. Atau Jalankan JS:</label>
+      <input type="text" id="actionJsInput" placeholder="alert('Berhasil!')" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top:12px;">
+        <button onclick="closeActionModal()" style="background:#64748b; color:white; border:none; padding:8px 12px; border-radius:5px;">Batal</button>
+        <button onclick="applyButtonAction()" style="background:#10b981; color:white; border:none; padding:8px 12px; border-radius:5px; font-weight:bold;">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Import -->
+  <div id="importModal" class="modal">
+    <div class="modal-content">
+      <h3>Tempel Kode HTML Anda</h3>
+      <textarea id="importInput" placeholder="Tempel seluruh kode HTML di sini..."></textarea>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button onclick="closeImportModal()" style="background:#64748b; color:white; border:none; padding:8px 12px; border-radius:5px;">Batal</button>
+        <button onclick="applyImportHTML()" style="background:#2563eb; color:white; border:none; padding:8px 12px; border-radius:5px; font-weight:bold;">Tampilkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Export -->
+  <div id="exportModal" class="modal">
+    <div class="modal-content">
+      <h3>Kode HTML Lengkap</h3>
+      <textarea id="exportOutput" readonly></textarea>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button onclick="closeExportModal()" style="background:#64748b; color:white; border:none; padding:8px 12px; border-radius:5px;">Tutup</button>
+        <button onclick="copyExportCode()" style="background:#10b981; color:white; border:none; padding:8px 12px; border-radius:5px; font-weight:bold;">Salin</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah Komponen -->
+  <div id="addModal" class="modal">
+    <div class="modal-content">
+      <h3>Pilih Komponen Baru</h3>
+      <div class="component-grid">
+        <div class="component-btn" style="grid-column: span 2; background:#f3e8ff; border-color:#a855f7; color:#6b21a8;" onclick="openCustomHtmlModal()">💻 Custom HTML / Kode</div>
+        <div class="component-btn" onclick="addComponent('button')">🔘 Tombol</div>
+        <div class="component-btn" onclick="addComponent('card')">📦 Card Box</div>
+        <div class="component-btn" onclick="addComponent('heading')">📝 Judul (H2)</div>
+        <div class="component-btn" onclick="addComponent('paragraph')">📄 Paragraf</div>
+        <div class="component-btn" onclick="addComponent('input')">✏️ Input Teks</div>
+        <div class="component-btn" onclick="addComponent('image')">🖼️ Gambar</div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+        <button onclick="closeAddModal()" style="background:#64748b; color:white; border:none; padding:8px 15px; border-radius:5px;">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas-frame');
+    const toolbar = document.getElementById('action-toolbar');
+    const breadcrumbBar = document.getElementById('breadcrumb-bar');
+    const crumbList = document.getElementById('crumb-list');
+    const importedStylesContainer = document.getElementById('imported-head-styles');
+    const importedScriptsContainer = document.getElementById('imported-scripts-container');
+    const btnChangeImg = document.getElementById('btnChangeImg');
+
+    let originalHeadNodes = [];
+    let selectedEl = null;
+    let isPreviewMode = false;
+    let isHiddenShown = false;
+
+    // TAB SYSTEM DOCK
+    function switchTab(tabId) {
+      document.getElementById('tab-gaya').style.display = 'none';
+      document.getElementById('tab-posisi').style.display = 'none';
+      document.getElementById('tab-aksi').style.display = 'none';
+      document.getElementById('tab-kode').style.display = 'none';
+
+      document.querySelectorAll('.tool-tab-btn').forEach(btn => btn.classList.remove('active'));
+
+      document.getElementById(tabId).style.display = 'grid';
+      event.currentTarget.classList.add('active');
+    }
+
+    // MODAL HANDLERS
+    function openMenuModal() { document.getElementById('menuModal').style.display = 'block'; }
+    function closeMenuModal() { document.getElementById('menuModal').style.display = 'none'; }
+
+    function openImportModal() { document.getElementById('importModal').style.display = 'block'; }
+    function closeImportModal() { document.getElementById('importModal').style.display = 'none'; }
+
+    function openExportModal() {
+      document.getElementById('exportOutput').value = generateFullHTML();
+      document.getElementById('exportModal').style.display = 'block';
+    }
+    function closeExportModal() { document.getElementById('exportModal').style.display = 'none'; }
+
+    function openAddModal() { document.getElementById('addModal').style.display = 'block'; }
+    function closeAddModal() { document.getElementById('addModal').style.display = 'none'; }
+
+    // DOWNLOAD FILE
+    function generateFullHTML() {
+      const cloneCanvas = canvas.cloneNode(true);
+      cloneCanvas.querySelectorAll('.editor-selected').forEach(el => {
+        el.classList.remove('editor-selected');
+        el.removeAttribute('contenteditable');
+      });
+
+      let headHTML = '<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n';
+      originalHeadNodes.forEach(node => {
+        if (node.outerHTML) headHTML += node.outerHTML + '\n';
+      });
+
+      return `<!DOCTYPE html>
+<html lang="id">
+<head>
+${headHTML}</head>
+<body>
+${cloneCanvas.innerHTML.trim()}
+</body>
+</html>`;
+    }
+
+    function downloadHTML() {
+      const fullHTML = generateFullHTML();
+      const blob = new Blob([fullHTML], { type: 'text/html;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'proyek_edited.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // SCALING & EDITING
+    function scaleElement(factor) {
+      if (!selectedEl) return;
+      const compStyle = window.getComputedStyle(selectedEl);
+      const fs = parseFloat(compStyle.fontSize) || 14;
+      selectedEl.style.fontSize = Math.max(8, Math.round(fs * factor)) + 'px';
+
+      if (selectedEl.style.height || selectedEl.tagName === 'TEXTAREA' || selectedEl.tagName === 'INPUT' || selectedEl.tagName === 'IMG') {
+        const currentHeight = parseFloat(compStyle.height);
+        if (currentHeight > 0) selectedEl.style.height = Math.round(currentHeight * factor) + 'px';
+      }
+      saveHistory();
+    }
+
+    function resetElementStyle() {
+      if (!selectedEl) return;
+      selectedEl.removeAttribute('style');
+      saveHistory();
+    }
+
+    function openCssModal() {
+      if (!selectedEl) return;
+      const compStyle = window.getComputedStyle(selectedEl);
+      document.getElementById('cssPadding').value = parseFloat(compStyle.padding) || '';
+      document.getElementById('cssMargin').value = parseFloat(compStyle.margin) || '';
+      document.getElementById('cssDisplay').value = compStyle.display || '';
+      document.getElementById('cssPosition').value = compStyle.position || '';
+      document.getElementById('cssOpacity').value = compStyle.opacity || '1';
+      document.getElementById('cssModal').style.display = 'block';
+    }
+    function closeCssModal() { document.getElementById('cssModal').style.display = 'none'; }
+
+    function applyCssChanges() {
+      if (!selectedEl) return;
+      const padding = document.getElementById('cssPadding').value;
+      const margin = document.getElementById('cssMargin').value;
+      const display = document.getElementById('cssDisplay').value;
+      const position = document.getElementById('cssPosition').value;
+      const boxShadow = document.getElementById('cssBoxShadow').value;
+      const opacity = document.getElementById('cssOpacity').value;
+
+      if (padding !== '') selectedEl.style.padding = padding + 'px';
+      if (margin !== '') selectedEl.style.margin = margin + 'px';
+      if (display !== '') selectedEl.style.display = display;
+      if (position !== '') selectedEl.style.position = position;
+      if (boxShadow !== '') selectedEl.style.boxShadow = boxShadow;
+      if (opacity !== '') selectedEl.style.opacity = opacity;
+
+      closeCssModal();
+      saveHistory();
+    }
+
+    function openElemCodeModal() {
+      if (!selectedEl) return;
+      const clone = selectedEl.cloneNode(true);
+      clone.classList.remove('editor-selected');
+      clone.removeAttribute('contenteditable');
+
+      document.getElementById('elemCodeInput').value = clone.outerHTML;
+      document.getElementById('elemCodeModal').style.display = 'block';
+    }
+    function closeElemCodeModal() { document.getElementById('elemCodeModal').style.display = 'none'; }
+
+    function applyElemCodeChanges() {
+      if (!selectedEl) return;
+      const code = document.getElementById('elemCodeInput').value.trim();
+      if (code !== '') {
+        const temp = document.createElement('div');
+        temp.innerHTML = code;
+        const newElem = temp.firstElementChild;
+        if (newElem) {
+          selectedEl.replaceWith(newElem);
+          selectElement(newElem);
+          saveHistory();
+        }
+      }
+      closeElemCodeModal();
+    }
+
+    // TREE VIEW
+    function openTreeModal() {
+      const container = document.getElementById('treeContainer');
+      container.innerHTML = '';
+      buildTreeNodes(canvas, container, 0);
+      document.getElementById('treeModal').style.display = 'block';
+    }
+    function closeTreeModal() { document.getElementById('treeModal').style.display = 'none'; }
+
+    function buildTreeNodes(parent, container, depth) {
+      Array.from(parent.children).forEach(child => {
+        const item = document.createElement('div');
+        item.className = 'tree-item' + (child === selectedEl ? ' active' : '');
+        item.style.marginLeft = (depth * 10) + 'px';
+
+        const cls = (typeof child.className === 'string') ? child.className.replace(/\s+/g, '.').replace('.editor-selected', '') : '';
+        const label = child.tagName.toLowerCase() + (child.id ? '#' + child.id : '') + (cls ? '.' + cls : '');
+        const snippet = child.innerText ? child.innerText.substring(0, 14) + '...' : '';
+
+        item.innerHTML = `<span><b>${label}</b></span> <span style="font-size:9px; opacity:0.7;">${snippet}</span>`;
+        item.onclick = () => { selectElement(child); closeTreeModal(); };
+
+        container.appendChild(item);
+        if (child.children.length > 0) buildTreeNodes(child, container, depth + 1);
+      });
+    }
+
+    function applyImportHTML() {
+      const code = document.getElementById('importInput').value;
+      if (code && code.trim() !== '') {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(code, 'text/html');
+
+        importedStylesContainer.innerHTML = '';
+        importedScriptsContainer.innerHTML = '';
+        originalHeadNodes = [];
+
+        if (doc.head) {
+          doc.head.childNodes.forEach(node => {
+            originalHeadNodes.push(node.cloneNode(true));
+            if (node.tagName !== 'SCRIPT') importedStylesContainer.appendChild(node.cloneNode(true));
+          });
+        }
+
+        canvas.innerHTML = doc.body ? doc.body.innerHTML : code;
+
+        const allScripts = doc.querySelectorAll('script');
+        allScripts.forEach(oldScript => {
+          const newScript = document.createElement('script');
+          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+          if (oldScript.innerHTML) newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+          importedScriptsContainer.appendChild(newScript);
+        });
+
+        deselectElement();
+        saveHistory();
+      }
+      closeImportModal();
+    }
+
+    function togglePreviewMode() {
+      isPreviewMode = !isPreviewMode;
+      const btn = document.getElementById('btnTogglePreview');
+      if (isPreviewMode) {
+        deselectElement();
+        btn.innerText = '🔴 Edit Mode';
+        btn.style.background = '#ef4444';
+      } else {
+        btn.innerText = '👁️ Preview';
+        btn.style.background = '#10b981';
+      }
+    }
+
+    function toggleShowHidden() {
+      isHiddenShown = !isHiddenShown;
+      if (isHiddenShown) {
+        canvas.classList.add('force-show-all');
+      } else {
+        canvas.classList.remove('force-show-all');
+      }
+    }
+
+    function setDeviceView(type) {
+      if (type === 'mobile') canvas.style.maxWidth = '380px';
+      else if (type === 'desktop') canvas.style.maxWidth = '100%';
+    }
+
+    function setTextAlign(align) {
+      if (!selectedEl) return;
+      let target = selectedEl;
+      const inlineDisplays = ['inline', 'inline-block', 'inline-flex', 'contents'];
+      while (target && target !== canvas) {
+        const display = window.getComputedStyle(target).display;
+        if (!inlineDisplays.includes(display)) break;
+        target = target.parentElement;
+      }
+      if (!target || target === canvas) target = selectedEl;
+      target.style.textAlign = align;
+      saveHistory();
+    }
+
+    function toggleBold() {
+      if (selectedEl) {
+        const weight = window.getComputedStyle(selectedEl).fontWeight;
+        selectedEl.style.fontWeight = (weight === 'bold' || parseInt(weight) >= 700) ? 'normal' : 'bold';
+        saveHistory();
+      }
+    }
+
+    function toggleItalic() {
+      if (selectedEl) {
+        const style = window.getComputedStyle(selectedEl).fontStyle;
+        selectedEl.style.fontStyle = (style === 'italic') ? 'normal' : 'italic';
+        saveHistory();
+      }
+    }
+
+    function toggleUnderline() {
+      if (selectedEl) {
+        const deco = window.getComputedStyle(selectedEl).textDecorationLine || window.getComputedStyle(selectedEl).textDecoration;
+        selectedEl.style.textDecoration = deco.includes('underline') ? 'none' : 'underline';
+        saveHistory();
+      }
+    }
+
+    let historyStack = [];
+    let historyStep = -1;
+
+    function saveHistory() {
+      const clone = canvas.cloneNode(true);
+      clone.querySelectorAll('.editor-selected').forEach(el => {
+        el.classList.remove('editor-selected');
+        el.removeAttribute('contenteditable');
+      });
+
+      historyStack = historyStack.slice(0, historyStep + 1);
+      historyStack.push(clone.innerHTML);
+      historyStep = historyStack.length - 1;
+    }
+
+    function undo() {
+      if (historyStep > 0) {
+        historyStep--;
+        canvas.innerHTML = historyStack[historyStep];
+        deselectElement();
+      }
+    }
+
+    function redo() {
+      if (historyStep < historyStack.length - 1) {
+        historyStep++;
+        canvas.innerHTML = historyStack[historyStep];
+        deselectElement();
+      }
+    }
+
+    canvas.addEventListener('click', function (e) {
+      if (isPreviewMode) return;
+      if (e.target !== canvas) {
+        e.preventDefault();
+        e.stopPropagation();
+        selectElement(e.target);
+      } else {
+        deselectElement();
+      }
+    });
+
+    function selectElement(el) {
+      if (selectedEl) {
+        selectedEl.classList.remove('editor-selected');
+        selectedEl.removeAttribute('contenteditable');
+      }
+      selectedEl = el;
+      selectedEl.classList.add('editor-selected');
+
+      toolbar.style.display = 'flex';
+      breadcrumbBar.style.display = 'flex';
+      btnChangeImg.style.display = (selectedEl.tagName === 'IMG') ? 'flex' : 'none';
+
+      updateBreadcrumbs();
+    }
+
+    function deselectElement() {
+      if (selectedEl) {
+        selectedEl.classList.remove('editor-selected');
+        selectedEl.removeAttribute('contenteditable');
+        selectedEl = null;
+      }
+      toolbar.style.display = 'none';
+      breadcrumbBar.style.display = 'none';
+    }
+
+    function updateBreadcrumbs() {
+      crumbList.innerHTML = '';
+      let curr = selectedEl;
+      let path = [];
+      while (curr && curr !== canvas) {
+        path.unshift(curr);
+        curr = curr.parentElement;
+      }
+      path.forEach((node) => {
+        const span = document.createElement('span');
+        span.className = 'crumb';
+        span.innerText = node.tagName.toLowerCase() + (node.id ? '#' + node.id : '');
+        span.onclick = () => selectElement(node);
+        crumbList.appendChild(span);
+      });
+    }
+
+    function selectParent() {
+      if (selectedEl && selectedEl.parentElement && selectedEl.parentElement !== canvas) {
+        selectElement(selectedEl.parentElement);
+      }
+    }
+
+    function openCustomHtmlModal() {
+      closeAddModal();
+      document.getElementById('customHtmlInput').value = '';
+      document.getElementById('customHtmlModal').style.display = 'block';
+    }
+    function closeCustomHtmlModal() { document.getElementById('customHtmlModal').style.display = 'none'; }
+
+    function insertCustomHtml() {
+      const code = document.getElementById('customHtmlInput').value.trim();
+      if (code !== '') {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = code;
+        const nodes = Array.from(tempDiv.childNodes);
+        let lastInserted = null;
+        nodes.forEach(node => {
+          if (node.nodeType === 1 || (node.nodeType === 3 && node.textContent.trim() !== '')) {
+            if (selectedEl) selectedEl.after(node);
+            else canvas.appendChild(node);
+            lastInserted = node;
+          }
+        });
+        closeCustomHtmlModal();
+        if (lastInserted && lastInserted.nodeType === 1) selectElement(lastInserted);
+        saveHistory();
+      }
+    }
+
+    function openActionModal() {
+      if (!selectedEl) return;
+      document.getElementById('actionUrlInput').value = selectedEl.getAttribute('onclick-url') || '';
+      document.getElementById('actionJsInput').value = selectedEl.getAttribute('onclick-js') || '';
+      document.getElementById('actionModal').style.display = 'block';
+    }
+    function closeActionModal() { document.getElementById('actionModal').style.display = 'none'; }
+
+    function applyButtonAction() {
+      if (!selectedEl) return;
+      const url = document.getElementById('actionUrlInput').value.trim();
+      const js = document.getElementById('actionJsInput').value.trim();
+
+      if (url !== '') {
+        selectedEl.setAttribute('onclick-url', url);
+        selectedEl.setAttribute('onclick', `window.location.href='${url}';`);
+      } else if (js !== '') {
+        selectedEl.setAttribute('onclick-js', js);
+        selectedEl.setAttribute('onclick', js);
+      } else {
+        selectedEl.removeAttribute('onclick');
+      }
+      closeActionModal();
+      saveHistory();
+    }
+
+    function changeTextColor(color) {
+      if (selectedEl) { selectedEl.style.color = color; saveHistory(); }
+    }
+
+    function changeBgColor(color) {
+      if (selectedEl) { selectedEl.style.backgroundColor = color; saveHistory(); }
+    }
+
+    function changeBorderRadius(px) {
+      if (!selectedEl) return;
+      const currentRadius = parseFloat(window.getComputedStyle(selectedEl).borderRadius) || 0;
+      selectedEl.style.borderRadius = Math.max(0, currentRadius + px) + 'px';
+      saveHistory();
+    }
+
+    function changeImageSrc() {
+      if (selectedEl && selectedEl.tagName === 'IMG') {
+        const currentSrc = selectedEl.getAttribute('src') || '';
+        const newSrc = prompt('Masukkan URL Gambar baru:', currentSrc);
+        if (newSrc !== null && newSrc.trim() !== '') {
+          selectedEl.src = newSrc;
+          saveHistory();
+        }
+      }
+    }
+
+    function nudgeVertical(px) {
+      if (!selectedEl) return;
+      const currentMarginTop = parseFloat(window.getComputedStyle(selectedEl).marginTop) || 0;
+      selectedEl.style.marginTop = (currentMarginTop + px) + 'px';
+      saveHistory();
+    }
+
+    function swapUp() {
+      if (selectedEl && selectedEl.previousElementSibling) {
+        selectedEl.parentNode.insertBefore(selectedEl, selectedEl.previousElementSibling);
+        saveHistory();
+      }
+    }
+
+    function swapDown() {
+      if (selectedEl && selectedEl.nextElementSibling) {
+        selectedEl.parentNode.insertBefore(selectedEl.nextElementSibling, selectedEl);
+        saveHistory();
+      }
+    }
+
+    function toggleEditText() {
+      if (selectedEl) {
+        const isEditable = selectedEl.getAttribute('contenteditable') === 'true';
+        if (isEditable) {
+          selectedEl.removeAttribute('contenteditable');
+          saveHistory();
+        } else {
+          selectedEl.setAttribute('contenteditable', 'true');
+          selectedEl.focus();
+        }
+      }
+    }
+
+    function duplicateElement() {
+      if (selectedEl) {
+        const clone = selectedEl.cloneNode(true);
+        clone.classList.remove('editor-selected');
+        selectedEl.after(clone);
+        saveHistory();
+      }
+    }
+
+    function deleteElement() {
+      if (selectedEl) {
+        selectedEl.remove();
+        deselectElement();
+        saveHistory();
+      }
+    }
+
+    function addComponent(type) {
+      let newEl;
+      if (type === 'button') {
+        newEl = document.createElement('button');
+        newEl.innerText = 'Tombol Baru';
+        newEl.style.cssText = 'background: #2563eb; color: white; border: none; padding: 10px 18px; border-radius: 6px; margin: 8px 0; font-weight: bold; cursor: pointer;';
+      } else if (type === 'card') {
+        newEl = document.createElement('div');
+        newEl.innerHTML = '<h3 style="margin-top:0;">Judul Card</h3><p style="color:#64748b; font-size:13px;">Ini adalah penjelasan di dalam kotak card baru.</p>';
+        newEl.style.cssText = 'background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin: 10px 0;';
+      } else if (type === 'heading') {
+        newEl = document.createElement('h2');
+        newEl.innerText = 'Judul Bagian Baru';
+        newEl.style.cssText = 'color: #1e293b; margin: 10px 0;';
+      } else if (type === 'paragraph') {
+        newEl = document.createElement('p');
+        newEl.innerText = 'Ini adalah kalimat paragraf baru yang dapat Anda sesuaikan teksnya.';
+        newEl.style.cssText = 'color: #475569; font-size: 13px; margin: 6px 0;';
+      } else if (type === 'input') {
+        newEl = document.createElement('input');
+        newEl.placeholder = 'Tuliskan sesuatu di sini...';
+        newEl.style.cssText = 'width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; margin: 6px 0;';
+      } else if (type === 'image') {
+        newEl = document.createElement('img');
+        newEl.src = 'https://via.placeholder.com/400x200?text=Gambar+Baru';
+        newEl.style.cssText = 'width: 100%; border-radius: 8px; margin: 8px 0; display: block;';
+      }
+
+      if (selectedEl) selectedEl.after(newEl);
+      else canvas.appendChild(newEl);
+
+      closeAddModal();
+      selectElement(newEl);
+      saveHistory();
+    }
+
+    function copyExportCode() {
+      const output = document.getElementById('exportOutput');
+      output.select();
+      document.execCommand('copy');
+      alert('Kode HTML berhasil disalin!');
+    }
+
+    function clearCanvas() {
+      if (confirm('Kosongkan canvas?')) {
+        canvas.innerHTML = '';
+        importedStylesContainer.innerHTML = '';
+        importedScriptsContainer.innerHTML = '';
+        originalHeadNodes = [];
+        deselectElement();
+        saveHistory();
+      }
+    }
+
+    saveHistory();
+  </script>
+</body>
+</html>
