@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal File Opener & Editor</title>
+    <style>
+        :root {
+            --bg-color: #1e1e2e;
+            --card-bg: #2b2b3b;
+            --text-color: #cdd6f4;
+            --accent-color: #89b4fa;
+            --border-color: #45475a;
+            --line-num-bg: #181825;
+            --code-bg: #11111b;
+            --grid-line-color: rgba(255, 255, 255, 0.08); /* Warna garis tipis buku */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            color: var(--accent-color);
+        }
+
+        p.subtitle {
+            margin-top: 0;
+            color: #a6adc8;
+            font-size: 0.9em;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--accent-color);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            width: 95%;
+            max-width: 850px;
+            background-color: var(--card-bg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            background-color: #36364f;
+            border-color: #a6e3a1;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .btn {
+            background-color: var(--accent-color);
+            color: #11111b;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-save {
+            background-color: #a6e3a1;
+            margin-bottom: 10px;
+        }
+
+        .file-info {
+            width: 95%;
+            max-width: 850px;
+            background: var(--card-bg);
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            display: none;
+        }
+
+        .viewer-container {
+            width: 95%;
+            max-width: 850px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 15px;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            display: none;
+        }
+
+        /* Styling Code Editor + Garis Buku Per Baris + Scroll */
+        .editor-wrapper {
+            display: flex;
+            height: 420px; /* Batas tinggi editor */
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--code-bg);
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 22px; /* Ditetapkan 22px agar presisi dengan tinggi garis */
+            overflow: hidden;
+        }
+
+        /* Garis tipis buku pada nomor baris */
+        .line-numbers {
+            width: 50px;
+            padding: 10px 5px;
+            background-color: var(--line-num-bg);
+            background-image: linear-gradient(to bottom, transparent 21px, var(--grid-line-color) 22px);
+            background-size: 100% 22px;
+            background-position: 0 10px;
+            background-attachment: local; /* Garis ikut ter-scroll */
+            color: #6c7086;
+            text-align: right;
+            user-select: none;
+            box-sizing: border-box;
+            overflow: hidden;
+            border-right: 1px solid var(--border-color);
+            white-space: pre;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+        }
+
+        /* Garis tipis buku pada area teks utama */
+        .code-textarea {
+            flex: 1;
+            padding: 10px;
+            background-color: transparent;
+            background-image: linear-gradient(to bottom, transparent 21px, var(--grid-line-color) 22px);
+            background-size: 100% 22px;
+            background-position: 0 10px;
+            background-attachment: local; /* Garis ikut ter-scroll */
+            color: #a6e3a1;
+            border: none;
+            outline: none;
+            resize: none;
+            white-space: pre;
+            overflow: auto; /* Aktifkan Scrollbar */
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            tab-size: 4;
+        }
+
+        img, video, iframe {
+            max-width: 100%;
+            max-height: 450px;
+            border-radius: 6px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        audio {
+            width: 100%;
+        }
+
+        .hex-table-container {
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        .hex-table {
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .hex-table td, .hex-table th {
+            padding: 4px 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .hex-table .offset { color: #f38ba8; }
+        .hex-table .bytes { color: #89b4fa; }
+        .hex-table .ascii { color: #a6e3a1; }
+    </style>
+</head>
+<body>
+
+    <h1>Universal File Opener & Editor</h1>
+    <p class="subtitle">Buka dan edit semua jenis file (.txt, .sh, .py, .html, .jpg, .exe, dll)</p>
+
+    <!-- Upload Area -->
+    <div class="upload-area" id="drop-zone">
+        <p>📋 Drag & Drop file ke sini, atau klik tombol di bawah</p>
+        <button class="btn" onclick="document.getElementById('file-input').click()">Pilih File Apa Saja</button>
+        <input type="file" id="file-input" onchange="processFile(this.files[0])">
+    </div>
+
+    <!-- File Info Header -->
+    <div class="file-info" id="file-info"></div>
+
+    <!-- Content Viewer / Editor -->
+    <div class="viewer-container" id="viewer-container"></div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const viewerContainer = document.getElementById('viewer-container');
+        let currentFileName = "edited_file.txt";
+
+        // Drag & Drop Handlers
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                processFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        function processFile(file) {
+            if (!file) return;
+
+            currentFileName = file.name;
+            viewerContainer.innerHTML = '';
+            fileInfo.style.display = 'block';
+            viewerContainer.style.display = 'block';
+
+            const ext = file.name.split('.').pop().toLowerCase();
+            const sizeKB = (file.size / 1024).toFixed(2);
+            fileInfo.innerHTML = `
+                <strong>📄 Nama File:</strong> ${file.name}<br>
+                <strong>🏷️ Ekstensi:</strong> .${ext} | <strong>Ukuran:</strong> ${sizeKB} KB | <strong>Tipe MIME:</strong> ${file.type || 'Tidak diketahui'}
+            `;
+
+            const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'];
+            const audioExts = ['mp3', 'wav', 'ogg', 'aac', 'flac'];
+            const videoExts = ['mp4', 'webm', 'ogg', 'mkv'];
+
+            if (imageExts.includes(ext) || file.type.startsWith('image/')) {
+                renderImage(file);
+            } else if (audioExts.includes(ext) || file.type.startsWith('audio/')) {
+                renderAudio(file);
+            } else if (videoExts.includes(ext) || file.type.startsWith('video/')) {
+                renderVideo(file);
+            } else if (ext === 'pdf' || file.type === 'application/pdf') {
+                renderPDF(file);
+            } else {
+                renderTextOrHex(file);
+            }
+        }
+
+        // Tampilkan Editor Kode dengan Garis Tipis & Nomor Baris
+        function renderEditor(content) {
+            viewerContainer.innerHTML = `
+                <button class="btn btn-save" onclick="downloadEditedFile()">💾 Simpan Hasil Edit</button>
+                <div class="editor-wrapper">
+                    <div class="line-numbers" id="line-numbers">1</div>
+                    <textarea class="code-textarea" id="code-textarea" spellcheck="false"></textarea>
+                </div>
+            `;
+
+            const textarea = document.getElementById('code-textarea');
+            const lineNumbers = document.getElementById('line-numbers');
+
+            textarea.value = content;
+
+            function updateLineNumbers() {
+                const lines = textarea.value.split('\n').length;
+                let numberString = '';
+                for (let i = 1; i <= lines; i++) {
+                    numberString += i + '\n';
+                }
+                lineNumbers.textContent = numberString;
+            }
+
+            function syncScroll() {
+                lineNumbers.scrollTop = textarea.scrollTop;
+            }
+
+            textarea.addEventListener('input', updateLineNumbers);
+            textarea.addEventListener('scroll', syncScroll);
+
+            textarea.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    textarea.value = textarea.value.substring(0, start) + "    " + textarea.value.substring(end);
+                    textarea.selectionStart = textarea.selectionEnd = start + 4;
+                    updateLineNumbers();
+                }
+            });
+
+            updateLineNumbers();
+        }
+
+        function renderTextOrHex(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const isBinary = /[\x00-\x08\x0E-\x1F]/.test(content.slice(0, 1000));
+
+                if (isBinary) {
+                    viewerContainer.innerHTML = '<p style="margin-top:0">⚠️ <em>File biner terdeteksi. Mode Hex Viewer (Scrollable):</em></p>';
+                    renderHex(file);
+                } else {
+                    renderEditor(content);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function downloadEditedFile() {
+            const textarea = document.getElementById('code-textarea');
+            if (!textarea) return;
+            const blob = new Blob([textarea.value], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = currentFileName;
+            a.click();
+        }
+
+        function renderImage(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                viewerContainer.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderAudio(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                viewerContainer.innerHTML = `<audio controls src="${e.target.result}"></audio>`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderVideo(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                viewerContainer.innerHTML = `<video controls src="${e.target.result}"></video>`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderPDF(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                viewerContainer.innerHTML = `<iframe src="${e.target.result}" width="100%" height="450px"></iframe>`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderHex(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const buffer = new Uint8Array(e.target.result.slice(0, 16384));
+                let table = '<div class="hex-table-container"><table class="hex-table"><tr><th>Offset</th><th>Bytes (Hex)</th><th>ASCII</th></tr>';
+                
+                for (let i = 0; i < buffer.length; i += 16) {
+                    const chunk = buffer.slice(i, i + 16);
+                    const offset = i.toString(16).padStart(8, '0').toUpperCase();
+                    
+                    let hexArr = [];
+                    let asciiArr = [];
+                    
+                    for (let b of chunk) {
+                        hexArr.push(b.toString(16).padStart(2, '0').toUpperCase());
+                        asciiArr.push(b >= 32 && b <= 126 ? String.fromCharCode(b) : '.');
+                    }
+
+                    table += `<tr>
+                        <td class="offset">${offset}</td>
+                        <td class="bytes">${hexArr.join(' ')}</td>
+                        <td class="ascii">${escapeHtml(asciiArr.join(''))}</td>
+                    </tr>`;
+                }
+                table += '</table></div>';
+                viewerContainer.innerHTML += table;
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>
