@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinkronisasi Subtitle SRT</title>
+    <style>
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { margin: 0; padding: 15px; background-color: #f0f2f5; color: #1c1e21; }
+        .container { max-width: 650px; margin: 0 auto; background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        
+        /* Judul diturunkan */
+        h2 { text-align: center; margin-top: 25px; margin-bottom: 18px; color: #1a73e8; font-size: 22px; }
+        
+        label { font-weight: 600; display: block; margin-top: 12px; margin-bottom: 6px; font-size: 14px; color: #444; }
+        
+        input[type="file"] { display: block; margin-bottom: 12px; width: 100%; padding: 10px; background: #f8f9fa; border: 2px dashed #4a90e2; border-radius: 8px; cursor: pointer; color: #333; font-weight: 500; }
+        input[type="file"]::file-selector-button { padding: 6px 12px; border-radius: 6px; border: none; background: #1a73e8; color: white; font-weight: bold; cursor: pointer; margin-right: 10px; }
+        
+        textarea { width: 100%; height: 110px; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; resize: vertical; font-size: 13px; font-family: monospace; }
+        
+        .status-badge { background: #e8f0fe; border: 1px solid #aecbfa; border-radius: 8px; padding: 12px; text-align: center; margin: 15px 0; }
+        .status-title { font-size: 12px; color: #5f6368; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; }
+        .status-value { font-size: 18px; font-weight: bold; color: #1967d2; margin: 4px 0; }
+        .status-preview { font-size: 13px; color: #3c4043; background: #ffffff; padding: 8px; border-radius: 6px; margin-top: 6px; font-family: monospace; line-height: 1.4; border: 1px solid #e0e0e0; text-align: left; }
+
+        .controls { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 12px; }
+        .input-group { margin-bottom: 12px; }
+        .input-group label { font-size: 13px; color: #1a73e8; }
+        
+        input[type="text"], select { width: 100%; padding: 11px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
+        input[type="text"] { text-align: center; font-weight: bold; font-size: 17px; }
+        
+        /* Desain Tombol Modern & Tidak Kaku */
+        .btn-main { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; background-color: #1a73e8; font-size: 15px; margin-top: 6px; margin-bottom: 10px; transition: 0.15s; }
+        .btn-main:active { transform: scale(0.98); }
+
+        .btn-row { display: flex; gap: 8px; align-items: center; }
+        .btn-action { padding: 12px 6px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; transition: 0.15s; font-size: 13px; flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
+        .btn-action:active { transform: scale(0.98); }
+        
+        .btn-tambah { background-color: #2e7d32; }
+        .btn-kurang { background-color: #c62828; }
+        .btn-reset { background-color: #546e7a; flex: 0.8; }
+        
+        .btn-download { background-color: #1e8e3e; width: 100%; margin-top: 15px; font-size: 16px; padding: 14px; border-radius: 8px; font-weight: bold; color: white; border: none; cursor: pointer; }
+
+        .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: 13px; color: #333; margin-bottom: 12px; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #ddd; }
+        .checkbox-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+        
+        @media (max-width: 480px) {
+            body { padding: 8px; }
+            .container { padding: 15px; }
+            .btn-action { font-size: 12px; padding: 11px 2px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Sinkronisasi Subtitle SRT</h2>
+    
+    <label for="fileInput">📁 Pilih File .srt:</label>
+    <input type="file" id="fileInput" accept=".srt">
+
+    <label for="inputSrt">Isi File Subtitle:</label>
+    <textarea id="inputSrt" placeholder="Pilih file .srt di atas atau tempel teks SRT di sini..."></textarea>
+
+    <!-- CONTROLS ENGINE -->
+    <div class="controls">
+        <label class="checkbox-label">
+            <input type="checkbox" id="chkRemoveSdh" onchange="updateTampilan()">
+            <span>🚫 Hapus Teks Efek Suara (contoh: <i>(suara kaki)</i>, <i>[musik]</i>)</span>
+        </label>
+
+        <div class="input-group">
+            <label for="inputSpeed"><b>Koreksi Tempo / FPS (Opsional):</b></label>
+            <select id="inputSpeed" onchange="updateTampilan()">
+                <option value="1.0">1.0x (Normal - Kebanyakan Film)</option>
+                <option value="1.042709">23.976 FPS ➔ 25 FPS (+4.27%)</option>
+                <option value="0.959040">25 FPS ➔ 23.976 FPS (-4.10%)</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="inputOffsetVal"><b>Angka Pergeseran Waktu dari Player:</b></label>
+            <input type="text" id="inputOffsetVal" placeholder="Masukkan angka offset...">
+        </div>
+
+        <button class="btn-main" onclick="prosesOffset('set')">🎯 Terapkan Angka Player</button>
+        
+        <div class="btn-row">
+            <button class="btn-action btn-tambah" onclick="prosesOffset('maju')">⏩ Tambah (+)</button>
+            <button class="btn-action btn-kurang" onclick="prosesOffset('mundur')">⏪ Kurang (-)</button>
+            <button class="btn-action btn-reset" onclick="resetPergeseran()">🔄 Reset</button>
+        </div>
+    </div>
+
+    <!-- INDIKATOR REALTIME -->
+    <div class="status-badge">
+        <div class="status-title">Total Pergeseran Waktu Saat Ini</div>
+        <div id="statusValue" class="status-value">0 Detik (Waktu Asli)</div>
+        <div id="statusPreview" class="status-preview">Contoh Baris 1: Belum ada file</div>
+    </div>
+
+    <label for="outputSrt">Hasil Akhir (Realtime):</label>
+    <textarea id="outputSrt" readonly placeholder="Hasil sinkronisasi otomatis muncul di sini..."></textarea>
+    
+    <button class="btn-download" onclick="downloadSrt()">⬇️ Download Hasil .srt</button>
+</div>
+
+<script>
+    let totalOffsetMili = 0;
+
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+        let file = event.target.files[0];
+        if (!file) return;
+
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('inputSrt').value = e.target.result;
+            resetPergeseran();
+        };
+        reader.readAsText(file);
+    });
+
+    document.getElementById('inputSrt').addEventListener('input', updateTampilan);
+
+    function parseInputKeMili(strInput) {
+        if (!strInput) return 0;
+        let clean = strInput.trim().toLowerCase().replace(',', '.');
+        
+        if (clean.endsWith('ms')) {
+            return parseFloat(clean.replace('ms', '')) || 0;
+        }
+        
+        if (clean.includes(':')) {
+            return ubahKeMilidetik(clean);
+        }
+        
+        let num = parseFloat(clean);
+        if (isNaN(num)) return 0;
+        
+        if (clean.includes('.')) {
+            return Math.round(num * 1000);
+        }
+        
+        if (Math.abs(num) >= 100) {
+            return num;
+        }
+        
+        return Math.round(num * 1000);
+    }
+
+    function ubahKeMilidetik(waktuStr) {
+        let bagian = waktuStr.trim().replace('.', ',').split(':');
+        let jam = parseInt(bagian[0], 10) || 0;
+        let menit = parseInt(bagian[1], 10) || 0;
+        let detikMili = (bagian[2] || '0,0').split(',');
+        let detik = parseInt(detikMili[0], 10) || 0;
+        let miliPad = (detikMili[1] || '0').trim().padEnd(3, '0').slice(0, 3);
+        let mili = parseInt(miliPad, 10) || 0;
+        
+        return (jam * 3600000) + (menit * 60000) + (detik * 1000) + mili;
+    }
+
+    function ubahKeFormatSrt(totalMili) {
+        if (totalMili < 0) totalMili = 0;
+        totalMili = Math.round(totalMili);
+        
+        let mili = totalMili % 1000;
+        let totalDetik = Math.floor(totalMili / 1000);
+        let detik = totalDetik % 60;
+        let totalMenit = Math.floor(totalDetik / 60);
+        let menit = totalMenit % 60;
+        let jam = Math.floor(totalMenit / 60);
+
+        return `${jam.toString().padStart(2, '0')}:${menit.toString().padStart(2, '0')}:${detik.toString().padStart(2, '0')},${mili.toString().padStart(3, '0')}`;
+    }
+
+    function prosesOffset(mode) {
+        let rawVal = document.getElementById('inputOffsetVal').value;
+        let parsedMili = parseInputKeMili(rawVal);
+
+        if (mode === 'set') {
+            totalOffsetMili = parsedMili;
+        } else if (mode === 'maju') {
+            totalOffsetMili += parsedMili;
+        } else if (mode === 'mundur') {
+            totalOffsetMili -= parsedMili;
+        }
+
+        updateTampilan();
+    }
+
+    function resetPergeseran() {
+        totalOffsetMili = 0;
+        document.getElementById('inputOffsetVal').value = "";
+        updateTampilan();
+    }
+
+    function formatDeskripsiOffset(mili) {
+        let speed = parseFloat(document.getElementById('inputSpeed').value) || 1.0;
+        let speedText = speed !== 1.0 ? ` | Speed: ${speed}x` : '';
+
+        if (mili === 0) return "0 Detik (Waktu Asli)" + speedText;
+        
+        let absMili = Math.abs(mili);
+        let status = mili > 0 ? "MAJU (+)" : "MUNDUR (-)";
+        let sec = (absMili / 1000).toFixed(3);
+        
+        return `${status} ${sec} Detik (${mili > 0 ? '+' : ''}${mili} ms)${speedText}`;
+    }
+
+    function updateTampilan() {
+        let inputTeks = document.getElementById('inputSrt').value;
+        
+        let badgeValue = document.getElementById('statusValue');
+        badgeValue.innerText = formatDeskripsiOffset(totalOffsetMili);
+        badgeValue.style.color = totalOffsetMili > 0 ? '#1967d2' : (totalOffsetMili < 0 ? '#d93025' : '#3c4043');
+
+        if (!inputTeks.trim()) {
+            document.getElementById('outputSrt').value = "";
+            document.getElementById('statusPreview').innerText = "Belum ada file SRT yang dimuat.";
+            return;
+        }
+
+        let speedMultiplier = parseFloat(document.getElementById('inputSpeed').value) || 1.0;
+        let removeSdh = document.getElementById('chkRemoveSdh').checked;
+
+        let regexWaktu = /(\d{2}:\d{2}:\d{2}[,\.]\d{1,3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,\.]\d{1,3})/g;
+        let firstMatch = null;
+        
+        let hasilTeks = inputTeks.replace(regexWaktu, function(match, waktuMulai, waktuSelesai) {
+            let mulaiMili = ubahKeMilidetik(waktuMulai);
+            let selesaiMili = ubahKeMilidetik(waktuSelesai);
+
+            let mulaiBaru = (mulaiMili * speedMultiplier) + totalOffsetMili;
+            let selesaiBaru = (selesaiMili * speedMultiplier) + totalOffsetMili;
+
+            let hasilBaris = ubahKeFormatSrt(mulaiBaru) + " --> " + ubahKeFormatSrt(selesaiBaru);
+
+            if (!firstMatch) {
+                firstMatch = {
+                    asli: match,
+                    baru: hasilBaris
+                };
+            }
+
+            return hasilBaris;
+        });
+
+        if (removeSdh) {
+            hasilTeks = hasilTeks.split('\n').map(line => {
+                if (!line.includes('-->') && !/^\d+$/.test(line.trim())) {
+                    return line
+                        .replace(/\([^)]*\)/g, '')
+                        .replace(/\[[^\]]*\]/g, '')
+                        .replace(/\{[^}]*\}/g, '')
+                        .trim();
+                }
+                return line;
+            }).join('\n');
+        }
+
+        document.getElementById('outputSrt').value = hasilTeks;
+
+        if (firstMatch) {
+            document.getElementById('statusPreview').innerHTML = 
+                `<b>Asli:</b> ${firstMatch.asli}<br><b>Baru:</b> <span style="color:#1a73e8;font-weight:bold;">${firstMatch.baru}</span>`;
+        }
+    }
+
+    function downloadSrt() {
+        let teksSrt = document.getElementById('outputSrt').value;
+        if (!teksSrt.trim()) {
+            alert("Tidak ada hasil untuk diunduh. Silakan pilih file SRT dulu.");
+            return;
+        }
+        
+        let blob = new Blob([teksSrt], { type: 'text/plain;charset=utf-8' });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        
+        a.href = url;
+        a.download = 'subtitle_sinkron.srt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+</body>
+</html>
