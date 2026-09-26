@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sinkronisasi Subtitle SRT</title>
-    <style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sinkronisasi Subtitle SRT</title>
+<style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { margin: 0; padding: 15px; background-color: #f0f2f5; color: #1c1e21; }
         .container { max-width: 650px; margin: 0 auto; background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
@@ -56,8 +58,7 @@
     </style>
 </head>
 <body>
-
-<div class="container">
+<div class="container" style="border-radius: 28px;">
     <h2>Sinkronisasi Subtitle SRT</h2>
     
     <label for="fileInput">📁 Pilih File .srt:</label>
@@ -104,9 +105,9 @@
     </div>
 
     <label for="outputSrt">Hasil Akhir (Realtime):</label>
-    <textarea id="outputSrt" readonly placeholder="Hasil sinkronisasi otomatis muncul di sini..."></textarea>
+    <textarea id="outputSrt" readonly="" placeholder="Hasil sinkronisasi otomatis muncul di sini..."></textarea>
     
-    <button class="btn-download" onclick="downloadSrt()">⬇️ Download Hasil .srt</button>
+    <button class="btn-download" onclick="downloadSrt()" style="margin-top: -9px; border-radius: 48px;">⬇️ Download Hasil .srt</button>
 </div>
 
 <script>
@@ -290,6 +291,5 @@
         URL.revokeObjectURL(url);
     }
 </script>
-
 </body>
 </html>
